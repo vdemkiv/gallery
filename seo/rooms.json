@@ -1,0 +1,188 @@
+{
+  "base": "https://gallery.volodymyrdemkiv.com/",
+  "site": "https://volodymyrdemkiv.com",
+  "artist": {
+    "name": "Volodymyr Demkiv",
+    "url": "https://volodymyrdemkiv.com/",
+    "sameAs": ["https://www.instagram.com/volodymyr_demkiv/"],
+    "description": "Ukrainian-born black and white film photographer based in South Florida, printing every image by hand as a silver gelatin print."
+  },
+  "index": {
+    "title": "Virtual Gallery of Silver Gelatin Prints | Volodymyr Demkiv",
+    "description": "Walk through 3D gallery rooms of black and white film photographs by Volodymyr Demkiv, each series hung large as handmade silver gelatin prints.",
+    "image": "img/avocado.jpg",
+    "imageAlt": "Avocado from Half Fruit, a silver gelatin print by Volodymyr Demkiv"
+  },
+  "rooms": {
+    "half-fruit": {
+      "series": "/work/half-fruit",
+      "description": "Walk through Half Fruit: ten black and white still lifes made in Kraków, hung high over Biscayne Bay. Silver gelatin prints shown at photoMIAMI 2026.",
+      "text": "Half Fruit is a series of still lifes of halved fruit on a spun plate, made in Kraków in 2022 and 2023, shot on film and printed by hand as silver gelatin prints. The first room hangs the nine prints as a grid, as shown at photoMIAMI 2026 during Miami Art Week. The second room hangs all ten prints large, in a gallery high above Biscayne Bay.",
+      "image": "img/avocado.jpg",
+      "subject": "a halved fruit, black and white still life"
+    },
+    "clouds": {
+      "series": "/work/clouds",
+      "description": "Clouds: one work of 25 handmade 8x10 silver gelatin prints in a single frame, hung in a virtual Paris salon. Shown at photoMIAMI 2025.",
+      "text": "Clouds is a single work: twenty-five 8 x 10 inch silver gelatin prints of the sky, made by hand by the artist and framed together behind anti-reflective glass. It was shown at photoMIAMI during Miami Art Week 2025 and is offered only as one complete work. Here it hangs in a panelled Paris salon.",
+      "image": "img/clouds.jpg",
+      "subject": "clouds in a 5 by 5 grid of black and white prints",
+      "single": true
+    },
+    "everglades": {
+      "series": "/work/everglades",
+      "description": "Black and white large-format film photographs of the Florida Everglades, hung in a virtual museum hall. Handmade silver gelatin prints.",
+      "text": "Everglades is a large-format film study of light, water and horizon lines across the River of Grass: sawgrass, cypress, lilies and reflections, made with long exposures. The prints hang in a long museum corridor that opens into a skylit hall. Every print is a fiber-based silver gelatin print made by hand by the artist.",
+      "image": "img/everglades-01.jpg",
+      "subject": "the Florida Everglades"
+    },
+    "north-west": {
+      "series": "/work/notthwest",
+      "description": "North-West: black and white film landscapes by Volodymyr Demkiv, hung large in a virtual museum hall as handmade silver gelatin prints.",
+      "text": "North-West is a series of black and white landscapes made on film. The prints hang large in a museum corridor and skylit hall, each a fiber-based silver gelatin print made by hand by the artist.",
+      "image": "img/northwest-01.jpg",
+      "subject": "a North-West landscape"
+    },
+    "fields": {
+      "series": "/work/fields",
+      "description": "Fields: black and white film photographs by Volodymyr Demkiv in a virtual museum hall, each one a handmade silver gelatin print.",
+      "text": "Fields is a series of black and white photographs made on film. The prints hang in a museum corridor and skylit hall, each a fiber-based silver gelatin print made by hand by the artist.",
+      "image": "img/fields-01.jpg",
+      "subject": "fields"
+    },
+    "the-new-york": {
+      "series": "/work/the-new-york",
+      "description": "The New York: black and white film photographs of late-night streets, winter light and solitary figures, in a virtual storefront gallery.",
+      "text": "The New York gathers black and white fragments from a city that is always in motion: pauses inside the grid, late-night streets, winter light and solitary figures. The prints hang in a New York storefront gallery with shop windows onto a brick street, each a silver gelatin print made by hand by the artist.",
+      "image": "img/new-york-01.jpg",
+      "subject": "New York City"
+    },
+    "chicago": {
+      "series": "/work/chicago",
+      "description": "Chicago: black and white film photographs of the Loop by Volodymyr Demkiv, hung in a virtual New York gallery as silver gelatin prints.",
+      "text": "Chicago is a series of black and white photographs of the Loop, made on film. The prints hang in a New York storefront gallery, each a fiber-based silver gelatin print made by hand by the artist.",
+      "image": "img/chicago-01.jpg",
+      "subject": "the Chicago Loop"
+    },
+    "undefined": {
+      "series": "/work/undefined",
+      "description": "Undefined: black and white film photographs by Volodymyr Demkiv, hung in a virtual New York storefront gallery as silver gelatin prints.",
+      "text": "Undefined is a series of black and white photographs made on film. The prints hang in a New York storefront gallery, each a fiber-based silver gelatin print made by hand by the artist.",
+      "image": "img/undefined-01.jpg",
+      "subject": "a black and white scene"
+    },
+    "interpretation": {
+      "series": "/work/interpretation",
+      "description": "Digital Interpretation: colour digital works by Volodymyr Demkiv about how images online interpret reality, shown in a virtual Paris salon.",
+      "text": "Digital Interpretation is a series of colour digital works about how everything we see online is, in one way or another, an interpretation of reality. Unlike the other rooms, these are digital works, not silver gelatin prints. They hang in a panelled Paris salon.",
+      "image": "img/interpretation-01.jpg",
+      "subject": "a digital interpretation",
+      "medium": "Digital work"
+    },
+    "layers-of-history": {
+      "series": "/work/layers-of-history",
+      "description": "Layers of History: black and white film photographs of the Grand Canyon's strata and shadow, hung in a virtual Paris salon as silver gelatin prints.",
+      "text": "Layers of History is a series of photographs made in Grand Canyon National Park in 2024 that treat geology as a kind of timekeeping. Without colour, the eye moves through form, strata and shadow. The prints hang in a panelled Paris salon, each a silver gelatin print made by hand by the artist.",
+      "image": "img/layers-of-history-01.jpg",
+      "subject": "the Grand Canyon"
+    },
+    "following-footsteps": {
+      "series": "/work/following-footsteps-of-ancestors",
+      "description": "Following the Footsteps of Ancestors: black and white film photographs by Volodymyr Demkiv, hung in a virtual Paris salon as silver gelatin prints.",
+      "text": "Following the Footsteps of Ancestors is a series of black and white photographs made on film. The prints hang in a panelled Paris salon, each a fiber-based silver gelatin print made by hand by the artist.",
+      "image": "img/footsteps-01.jpg",
+      "subject": "a black and white landscape"
+    },
+    "berlin": {
+      "series": "/work/berlin",
+      "description": "Berlin: black and white film photographs by Volodymyr Demkiv, hung in a virtual London warehouse gallery as handmade silver gelatin prints.",
+      "text": "Berlin is a series of black and white photographs of the city, made on film. The prints hang in a London warehouse of brick, timber beams and steel windows, each a fiber-based silver gelatin print made by hand by the artist.",
+      "image": "img/berlin-01.jpg",
+      "subject": "Berlin"
+    },
+    "ghosts-of-the-past": {
+      "series": "/work/ghosts-of-the-past",
+      "description": "Ghosts of the Past: black and white photographs of the ruined baroque Church of All Saints in Godovytsia, Lviv region, in a virtual London gallery.",
+      "text": "Ghosts of the Past photographs the ruined Church of All Saints in Godovytsia, in the Lviv region of Ukraine, a late baroque church designed by Bernard Meretyn whose altar once held Johann Georg Pinsel's Sacrifice of Abraham. The prints hang in a London warehouse gallery, each a silver gelatin print made by hand by the artist.",
+      "image": "img/ghosts-01.jpg",
+      "subject": "the ruined Church of All Saints in Godovytsia"
+    },
+    "860519": {
+      "series": "/work/860519",
+      "description": "860519: black and white film photographs of American roads and cars and their mark on the land, hung in a virtual Miami beach gallery.",
+      "text": "860519 looks at the impact of urban infrastructure on the natural environment, and in particular at the vast network of roads and the presence of cars in the United States. The prints hang in a Miami beach gallery with a glass wall onto the sea, each a silver gelatin print made by hand by the artist.",
+      "image": "img/860519-01.jpg",
+      "subject": "roads and cars in the American landscape"
+    },
+    "dream": {
+      "series": "/work/dream",
+      "description": "Dream: black and white film photographs by Volodymyr Demkiv, hung in a virtual Miami beach gallery as handmade silver gelatin prints.",
+      "text": "Dream is a series of black and white photographs made on film. The prints hang in a Miami beach gallery with a terrazzo floor and a glass wall onto the sea, each a fiber-based silver gelatin print made by hand by the artist.",
+      "image": "img/dream-01.jpg",
+      "subject": "a black and white scene"
+    },
+    "pacific": {
+      "series": "/work/pacific",
+      "description": "Pacific: black and white film photographs of the Pacific Ocean's water and surface, hung in a virtual Los Angeles pavilion as silver gelatin prints.",
+      "text": "Pacific is a meditation on water and its connection to the Pacific Ocean. In black and white, the surface of the water becomes almost abstract. The prints hang in a concrete pavilion in the Los Angeles hills, each a silver gelatin print made by hand by the artist.",
+      "image": "img/pacific-01.jpg",
+      "subject": "the Pacific Ocean"
+    },
+    "burned-california": {
+      "series": "/work/burned-california",
+      "description": "Burned California: black and white film photographs by Volodymyr Demkiv, hung in a virtual Los Angeles pavilion as handmade silver gelatin prints.",
+      "text": "Burned California is a series of black and white photographs made on film in California. The prints hang in a concrete pavilion in the Los Angeles hills, each a fiber-based silver gelatin print made by hand by the artist.",
+      "image": "img/burned-california-01.jpg",
+      "subject": "a California landscape"
+    },
+    "south-west": {
+      "series": "/work/southwest",
+      "description": "South-West: black and white film landscapes by Volodymyr Demkiv, hung in a virtual Los Angeles pavilion as handmade silver gelatin prints.",
+      "text": "South-West is a series of black and white landscapes made on film. The prints hang in a concrete pavilion in the Los Angeles hills, each a fiber-based silver gelatin print made by hand by the artist.",
+      "image": "img/southwest-01.jpg",
+      "subject": "a South-West landscape"
+    },
+    "escaping-the-strip": {
+      "series": "/work/escaping-the-strip",
+      "description": "Escaping the Strip: black and white film photographs by Volodymyr Demkiv, hung in a virtual Los Angeles pavilion as handmade silver gelatin prints.",
+      "text": "Escaping the Strip is a series of black and white photographs made on film. The prints hang in a concrete pavilion in the Los Angeles hills, each a fiber-based silver gelatin print made by hand by the artist.",
+      "image": "img/escaping-the-strip-01.jpg",
+      "subject": "a black and white landscape"
+    },
+    "carpathian": {
+      "series": "/work/carpathian",
+      "description": "Black and white film photographs of the Carpathian Mountains, hung in a virtual Alpine hall. Handmade silver gelatin prints by Volodymyr Demkiv.",
+      "text": "Carpathian is a series of black and white film photographs of the Carpathian Mountains. The prints hang in an Alpine hall with a larch ceiling and a long window onto a valley, each a fiber-based silver gelatin print made by hand by the artist.",
+      "image": "img/carpathian-01.jpg",
+      "subject": "the Carpathian Mountains"
+    },
+    "dark-dolomites": {
+      "series": "/work/dolomites",
+      "description": "Dark Dolomites: high-contrast black and white film photographs of the Dolomites, hung in a virtual Alpine hall as handmade silver gelatin prints.",
+      "text": "Dark Dolomites captures the raw, dramatic atmosphere of these ancient mountains in high-contrast black and white, and the relationship between nature and people. The prints hang in an Alpine hall with a long window onto the mountains, each a silver gelatin print made by hand by the artist.",
+      "image": "img/dolomites-01.jpg",
+      "subject": "the Dolomites"
+    },
+    "lost": {
+      "series": "/work/lost",
+      "description": "Lost: black and white film photographs of people seeking solace high in the mountains, hung in a virtual Alpine hall as silver gelatin prints.",
+      "text": "Lost takes place high in the mountains and follows people who seek solace and a new path in remote places. The prints hang in an Alpine hall with a long window onto a valley, each a silver gelatin print made by hand by the artist.",
+      "image": "img/lost-01.jpg",
+      "subject": "a mountain landscape"
+    },
+    "bizkaia": {
+      "series": "/work/bizkaia",
+      "description": "Bizkaia: black and white film photographs of the mountains and valleys of the Basque Country, hung in a virtual stone hall in Bilbao.",
+      "text": "Bizkaia was made in the mountains and valleys of the Basque Country. The pictures think about distance, belonging and the steadying force of landscape. They hang in a sandstone hall in Bilbao with tall windows onto water and green hills, each a silver gelatin print made by hand by the artist.",
+      "image": "img/bizkaia-01.jpg",
+      "subject": "the Basque Country"
+    },
+    "flames-of-war": {
+      "series": "/work/flames-of-war",
+      "description": "Flames of WAR: black and white film photographs by Volodymyr Demkiv, hung in a virtual stone hall in Bilbao as handmade silver gelatin prints.",
+      "text": "Flames of WAR is a series of black and white photographs made on film. The prints hang in a sandstone hall in Bilbao, each a fiber-based silver gelatin print made by hand by the artist.",
+      "image": "img/flames-of-war-01.jpg",
+      "subject": "a black and white photograph"
+    }
+  }
+}
