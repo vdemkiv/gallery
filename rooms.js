@@ -13,7 +13,7 @@ canvas{display:block}
 [hidden]{display:none!important}
 .rm-top{position:fixed;top:calc(env(safe-area-inset-top,0px) + 14px);left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none}
 .rm-mark{pointer-events:auto;text-shadow:0 1px 8px rgba(0,0,0,.35)}
-.rm-back{display:inline-block;margin:0 0 10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);text-decoration:none;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;text-shadow:none;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.rm-back{white-space:nowrap}.rm-short{display:none}@media (max-width:520px){.rm-long{display:none}.rm-short{display:inline}}.rm-links{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.rm-back{display:inline-block;margin:0;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);text-decoration:none;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;text-shadow:none;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .rm-back:hover{border-color:rgba(244,236,225,.4)}
 .rm-back:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .rm-mark h1{margin:0;white-space:nowrap;font-weight:500;font-size:13px;letter-spacing:.22em;text-transform:uppercase}
@@ -44,7 +44,7 @@ function run(cfg){
   const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
   const root=el('div','rm');document.body.appendChild(root);
   const stage=el('div');stage.id='stage';stage.setAttribute('aria-label',cfg.label||'Walkable 3D room');root.appendChild(stage);
-  const top=el('div','rm-top',`<div class="rm-mark">${cfg.back?`<a class="rm-back" href="${cfg.back}">‹ All rooms</a>`:''}<h1>${cfg.title}</h1><p>${cfg.subtitle||''}</p></div><div class="rm-views"></div>`);root.appendChild(top);
+  const top=el('div','rm-top',`<div class="rm-mark"><div class="rm-links"><a class="rm-back" href="https://volodymyrdemkiv.com">‹ <span class="rm-long">volodymyrdemkiv.com</span><span class="rm-short">Main site</span></a>${cfg.back?`<a class="rm-back" href="${cfg.back}">All rooms</a>`:''}</div><h1>${cfg.title}</h1><p>${cfg.subtitle||''}</p></div><div class="rm-views"></div>`);root.appendChild(top);
   const views=top.querySelector('.rm-views');
   const hint=el('div','rm-hint',cfg.hint||'Drag to look around · tap a print to step closer · scroll or pinch to move');root.appendChild(hint);
   const card=el('div','rm-card',`<button class="nav" type="button" aria-label="Previous print">‹</button><div class="txt"><h2></h2><p class="meta"></p><p class="inq">Available · inquire</p></div><button class="nav" type="button" aria-label="Next print">›</button>`);card.hidden=true;root.appendChild(card);
