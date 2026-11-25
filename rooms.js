@@ -53,7 +53,7 @@ function run(cfg){
   let renderer;
   try{renderer=new THREE.WebGLRenderer({antialias:true,logarithmicDepthBuffer:!!cfg.logDepth});}
   catch(e){stage.innerHTML='<div class="rm-nogl">This browser could not open the 3D room. Try a recent Chrome, Safari or Firefox.</div>';loading.classList.add('done');return;}
-  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));
   renderer.outputEncoding=THREE.sRGBEncoding;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure=cfg.exposure||.8;
@@ -73,7 +73,9 @@ function run(cfg){
   const softShadow=tex(256,256,(g,w,h)=>{g.filter='blur(16px)';g.fillStyle='rgba(30,22,14,.6)';g.fillRect(44,52,w-88,h-92);});
   const blob=tex(256,256,(g,w,h)=>{const r=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);r.addColorStop(0,'rgba(25,18,10,.55)');r.addColorStop(1,'rgba(25,18,10,0)');g.fillStyle=r;g.fillRect(0,0,w,h);});
   const MOODQ=()=>{try{const q=new URLSearchParams(location.search).get('mood');if(q!=null)return q!=='0';}catch(e){}return true;};
-  const rectPool=tex(256,256,(g,w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;const q=c.getContext('2d');q.fillStyle='rgba(255,236,214,.5)';q.fillRect(w*.17,h*.16,w*.66,h*.68);q.fillStyle='rgba(255,236,214,.25)';q.fillRect(w*.13,h*.12,w*.74,h*.80);g.filter='blur(9px)';g.drawImage(c,0,0);g.filter='none';});
+  // painted light for the moody rooms: the soft oval a ceiling head aimed at 30 degrees throws on the wall (no real lights, so it stays fast)
+  const rectPool=tex(256,256,(g,w,h)=>{const q=g.createRadialGradient(w/2,h*.44,0,w/2,h*.44,w*.5);q.addColorStop(0,'rgba(255,240,220,.62)');q.addColorStop(.55,'rgba(255,240,220,.42)');q.addColorStop(.8,'rgba(255,240,220,.14)');q.addColorStop(1,'rgba(255,240,220,0)');
+    g.save();g.translate(w/2,h*.44);g.scale(1,1.08);g.translate(-w/2,-h*.44);g.fillStyle=q;g.fillRect(0,0,w,h);g.restore();});
   const pool=tex(256,256,(g,w,h)=>{const r=g.createRadialGradient(w/2,h*.45,0,w/2,h*.45,w/2);r.addColorStop(0,'rgba(255,236,210,.55)');r.addColorStop(.6,'rgba(255,230,200,.18)');r.addColorStop(1,'rgba(255,230,200,0)');g.fillStyle=r;g.fillRect(0,0,w,h);});
 
   // ---- classic frame: thin black moulding, white mat ----
@@ -89,7 +91,7 @@ function run(cfg){
     const FW=(o.w+2*mat+2*mould)*IN, FH=(o.h+2*mat+2*mould)*IN, M=mould*IN, D=(o.asIs?2:1.5)*IN;
     const sh=new THREE.Mesh(new THREE.PlaneGeometry(FW*1.4,FH*1.45),new THREE.MeshBasicMaterial({map:softShadow,transparent:true,depthWrite:false,opacity:.65}));
     sh.position.set(FW*.04,-FH*.05,.002);g.add(sh);
-    if(o.light!==false&&cfg.pools!==false){const moody=cfg.mood!==false&&MOODQ();const p=new THREE.Mesh(moody?new THREE.PlaneGeometry(FW*1.5,FH*1.6):new THREE.PlaneGeometry(FW*2.4,FH*2.6),new THREE.MeshBasicMaterial({map:moody?rectPool:pool,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:(cfg.mood===false?(cfg.poolStrength||.35):(cfg.poolStrength||.35)*.7)}));p.position.set(0,moody?-FH*.04:FH*.15,.001);g.add(p);}
+    if(o.light!==false&&cfg.pools!==false){const moody=cfg.mood!==false&&MOODQ();const p=new THREE.Mesh(moody?new THREE.PlaneGeometry(Math.max(FW,FH*.8)*1.75,FH*1.95):new THREE.PlaneGeometry(FW*2.4,FH*2.6),new THREE.MeshBasicMaterial({map:moody?rectPool:pool,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:(cfg.mood===false?(cfg.poolStrength||.35):(cfg.poolStrength||.35)*2.2)}));p.position.set(0,moody?FH*.1:FH*.15,.001);g.add(p);}
     let img;
     if(o.asIs){
       const box=new THREE.Mesh(new THREE.BoxGeometry(FW,FH,D),frameMat);box.position.z=D/2;g.add(box);
@@ -123,6 +125,7 @@ function run(cfg){
   window.__TEXTILE=MOOD&&TEXQ?cfg.city:null;
   const room=cfg.build(ctx);
   if(MOOD){
+    matMat.emissive=new THREE.Color(0xfff2e2);matMat.emissiveIntensity=.42;
     scene.traverse(o=>{if(!o.isLight||o.userData.spot)return;
       o.intensity*=o.isHemisphereLight?.42:o.isAmbientLight?.42:o.isDirectionalLight?.34:.26;});
     scene.traverse(o=>{if(o.userData.pano)o.traverse(m=>{if(m.material&&m.material.color)m.material.color.multiplyScalar(.85);});});
@@ -137,9 +140,7 @@ function run(cfg){
       const heads=(w.FW/w.FH>1.3)?[-w.FW/4,w.FW/4]:[0];
       heads.forEach(dx=>{const tgtP=c.clone().addScaledVector(side,dx);
         const lp=tgtP.clone().addScaledVector(n,out);lp.y=fy;
-        const sp=new THREE.SpotLight(0xfff0dc,1.0/Math.sqrt(heads.length),12,1,1,1);sp.userData.spot=true;
-        const d=lp.distanceTo(tgtP);const reach=heads.length>1?Math.hypot(w.FW*.75,w.FH)/2:w.half;
-        sp.angle=Math.min(.95,Math.atan(reach*1.08/d));sp.position.copy(lp);sp.target.position.copy(tgtP);scene.add(sp);scene.add(sp.target);
+
         const f=new THREE.Group();const body=new THREE.Mesh(new THREE.CylinderGeometry(.04,.05,.15,16),can);body.rotation.x=Math.PI/2;f.add(body);
         const lens=new THREE.Mesh(new THREE.CircleGeometry(.036,16),new THREE.MeshBasicMaterial({color:0xfff6e6}));lens.position.z=.076;f.add(lens);
         f.position.copy(lp);f.lookAt(tgtP);scene.add(f);
