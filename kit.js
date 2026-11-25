@@ -23,9 +23,46 @@ function uvPlane(w,h,mat,u0,v0){const THREE=T();const g=new THREE.PlaneGeometry(
   const uv=g.attributes.uv;for(let i=0;i<uv.count;i++){uv.setXY(i,(u0+uv.getX(i)*w)/tx,(v0+uv.getY(i)*h)/ty);}uv.needsUpdate=true;return new THREE.Mesh(g,mat);}
 K.uvPlane=uvPlane;
 
+/* ---------- textiles and wood for the moody rooms ---------- */
+K.TX={
+  // woven wall covering (linen / wool): warp and weft threads with slubs; tile .55 m
+  fabric:(col,tone)=>K.mat({tile:.55,rough:1,bump:.0008,px:1024,draw:(g,w,h)=>{const r=K.rnd;g.fillStyle=col;g.fillRect(0,0,w,h);const p=3;
+      for(let y=0;y<h;y+=p){g.globalAlpha=r(.02,.06);g.fillStyle=Math.random()<.5?'#000':'#fff';g.fillRect(0,y,w,p*.55);}
+      for(let x=0;x<w;x+=p){g.globalAlpha=r(.015,.04);g.fillStyle=Math.random()<.5?'#000':'#fff';g.fillRect(x,0,p*.5,h);}
+      for(let i=0;i<1600;i++){g.globalAlpha=r(.03,.08);g.fillStyle=Math.random()<.55?(tone||'#fff'):'#000';const y=Math.floor(r(0,h)/p)*p;g.fillRect(r(-40,w),y,r(20,140),p*r(.5,.9));}
+      g.globalAlpha=1;K.blots(g,w,h,24,['rgba(255,255,255,.03)','rgba(0,0,0,.03)'],80,260,.2);K.noise(g,w,h,10);}}),
+  // wool carpet / felt: dense short fibres; tile 1.1 m
+  wool:(col)=>K.mat({tile:1.1,rough:1,bump:.0012,px:1024,draw:(g,w,h)=>{const r=K.rnd;g.fillStyle=col;g.fillRect(0,0,w,h);g.lineCap='round';
+      for(let i=0;i<90000;i++){const x=r(0,w),y=r(0,h),a=r(0,6.3),l=r(2,6);g.globalAlpha=r(.03,.08);g.strokeStyle=Math.random()<.5?'#000':'#fff';g.lineWidth=r(.6,1.4);g.beginPath();g.moveTo(x,y);g.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);g.stroke();}
+      g.globalAlpha=1;K.blots(g,w,h,30,['rgba(255,255,255,.05)','rgba(0,0,0,.07)'],60,220,.4);K.noise(g,w,h,8);}}),
+  // smoked oak boards, oiled
+  oak:(lit)=>K.mat({tile:2.6,rough:.6,bump:.0012,draw:(g,w,h)=>{const r=K.rnd,bw=w/10;for(let c=0;c<10;c++){const off=r(0,h);for(let y=-h;y<h*2;y+=h*.8){
+      g.fillStyle=`hsl(${r(28,33)},${r(14,19)}%,${(lit||24)+r(-2,2)}%)`;g.fillRect(c*bw,y+off,bw,h*.8);
+      g.globalAlpha=.14;g.strokeStyle='#120c07';for(let k=0;k<14;k++){g.lineWidth=r(.5,1.8);const x=c*bw+r(3,bw-3);g.beginPath();g.moveTo(x,y+off);g.bezierCurveTo(x+r(-6,6),y+off+h*.25,x+r(-6,6),y+off+h*.55,x+r(-2,2),y+off+h*.8);g.stroke();}
+      g.globalAlpha=.6;g.fillStyle='#0d0905';g.fillRect(c*bw,y+off,bw,2);g.fillRect(c*bw,y+off,1.5,h*.8);g.globalAlpha=1;}}K.noise(g,w,h,8);}}),
+};
+// per space: wall fabric colour, floor (wool colour or 'oak'), and a second room variant
+K.TXPAL={
+  newYork:{wall:['#e4e0d8','#e4e0d8'],floor:['oak','#b9b4ab']},
+  paris:{wall:['#e6e1d7','#e6e1d7','#e6e1d7'],floor:['oak','oak','oak']},
+  london:{wall:['#e2ded7','#e2ded7'],floor:['#a9a49b','oak']},
+  miami:{wall:['#ebe7df','#ebe7df'],floor:['#cfc9bd','#cfc9bd']},
+  losAngeles:{wall:['#dedad3'],floor:['#a8a39a']},
+  alps:{wall:['#e4dfd5','#e4dfd5'],floor:['oak','oak']},
+  bilbao:{wall:['#e2ddd4','#e2ddd4'],floor:['oak','#aaa59c']},
+  museum:{wall:['#e3dfd8'],floor:['#b1aca3']},
+  brickell:{wall:['#e8e5df','#e8e5df'],floor:['#bdb8ae','oak']},
+};
+K.TXPAL.ny=K.TXPAL.newYork;K.TXPAL.la=K.TXPAL.losAngeles;
+K.textile=function(spec){const city=window.__TEXTILE;if(!city)return;const P=K.TXPAL[city];if(!P)return;const cache={};
+  const get=(k,f)=>cache[k]||(cache[k]=f());
+  spec.cells.forEach((c,i)=>{const wc=P.wall[i%P.wall.length],fc=P.floor[i%P.floor.length];
+    if(!(c.wall&&c.wall.userData&&c.wall.userData.keep))c.wall=get('w'+wc,()=>K.TX.fabric(wc));
+    c.floor=fc==='oak'?get('oak',()=>K.TX.oak(36)):get('f'+fc,()=>K.TX.wool(fc));});};
+
 /* ---------- the space ---------- */
 K.space=function(ctx,spec){
-  const THREE=T(),scene=ctx.scene;const cells={};const floors=[];
+  const THREE=T(),scene=ctx.scene;const cells={};const floors=[];K.textile(spec);
   const aoTex=K.ctex(K.canvas(8,256,(g,w,h)=>{const r=g.createLinearGradient(0,h,0,0);r.addColorStop(0,'rgba(0,0,0,1)');r.addColorStop(.35,'rgba(0,0,0,.35)');r.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=r;g.fillRect(0,0,w,h);}),false);
   aoTex.wrapS=aoTex.wrapT=THREE.ClampToEdgeWrapping;
   const aoMat=(o)=>new THREE.MeshBasicMaterial({map:aoTex,color:0x000000,transparent:true,opacity:o,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});
@@ -118,7 +155,7 @@ K.pano=function(ctx,o){const THREE=T();const R=o.R||3000,a0=o.a0!=null?o.a0:-25,
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geo.setIndex(idx);
   const tx=new THREE.TextureLoader().load(o.src);tx.encoding=THREE.sRGBEncoding;tx.anisotropy=8;tx.wrapS=THREE.RepeatWrapping;
   const b=o.bright||1;const mat=new THREE.MeshBasicMaterial({map:tx,side:THREE.DoubleSide,fog:false,toneMapped:false,color:new THREE.Color(b,b,b),depthWrite:false});
-  const g=new THREE.Group();const band=new THREE.Mesh(geo,mat);band.renderOrder=-10;g.add(band);
+  const g=new THREE.Group();g.userData.pano=true;const band=new THREE.Mesh(geo,mat);band.renderOrder=-10;g.add(band);
   const capM=(c)=>new THREE.MeshBasicMaterial({color:(o.arc?new THREE.Color(c).convertSRGBToLinear():new THREE.Color(c)).multiplyScalar(b),side:THREE.DoubleSide,fog:false,toneMapped:false,depthWrite:false});
   const top=new THREE.Mesh(new THREE.SphereGeometry(R*1.6,48,16,0,Math.PI*2,0,o.arc?(90-a1+1)*Math.PI/180:Math.PI/2*0.62),capM(o.sky||'#7fa3cf'));top.renderOrder=-11;g.add(top);
   const yb=R*Math.tan(a0*Math.PI/180);const bot=new THREE.Mesh(new THREE.CircleGeometry(R*1.2,64),capM(o.ground||'#777'));bot.rotation.x=-Math.PI/2;bot.position.y=yb;bot.renderOrder=-11;g.add(bot);

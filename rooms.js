@@ -72,6 +72,8 @@ function run(cfg){
   function grain(g,w,h,amt){const id=g.getImageData(0,0,w,h),d=id.data;for(let i=0;i<d.length;i+=4){const n=(Math.random()-.5)*amt;d[i]+=n;d[i+1]+=n;d[i+2]+=n;}g.putImageData(id,0,0);}
   const softShadow=tex(256,256,(g,w,h)=>{g.filter='blur(16px)';g.fillStyle='rgba(30,22,14,.6)';g.fillRect(44,52,w-88,h-92);});
   const blob=tex(256,256,(g,w,h)=>{const r=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);r.addColorStop(0,'rgba(25,18,10,.55)');r.addColorStop(1,'rgba(25,18,10,0)');g.fillStyle=r;g.fillRect(0,0,w,h);});
+  const MOODQ=()=>{try{const q=new URLSearchParams(location.search).get('mood');if(q!=null)return q!=='0';}catch(e){}return true;};
+  const rectPool=tex(256,256,(g,w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;const q=c.getContext('2d');q.fillStyle='rgba(255,236,214,.5)';q.fillRect(w*.17,h*.16,w*.66,h*.68);q.fillStyle='rgba(255,236,214,.25)';q.fillRect(w*.13,h*.12,w*.74,h*.80);g.filter='blur(9px)';g.drawImage(c,0,0);g.filter='none';});
   const pool=tex(256,256,(g,w,h)=>{const r=g.createRadialGradient(w/2,h*.45,0,w/2,h*.45,w/2);r.addColorStop(0,'rgba(255,236,210,.55)');r.addColorStop(.6,'rgba(255,230,200,.18)');r.addColorStop(1,'rgba(255,230,200,0)');g.fillStyle=r;g.fillRect(0,0,w,h);});
 
   // ---- classic frame: thin black moulding, white mat ----
@@ -87,7 +89,7 @@ function run(cfg){
     const FW=(o.w+2*mat+2*mould)*IN, FH=(o.h+2*mat+2*mould)*IN, M=mould*IN, D=(o.asIs?2:1.5)*IN;
     const sh=new THREE.Mesh(new THREE.PlaneGeometry(FW*1.4,FH*1.45),new THREE.MeshBasicMaterial({map:softShadow,transparent:true,depthWrite:false,opacity:.65}));
     sh.position.set(FW*.04,-FH*.05,.002);g.add(sh);
-    if(o.light!==false&&cfg.pools!==false){const p=new THREE.Mesh(new THREE.PlaneGeometry(FW*2.4,FH*2.6),new THREE.MeshBasicMaterial({map:pool,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:cfg.poolStrength||.35}));p.position.set(0,FH*.15,.001);g.add(p);}
+    if(o.light!==false&&cfg.pools!==false){const moody=cfg.mood!==false&&MOODQ();const p=new THREE.Mesh(moody?new THREE.PlaneGeometry(FW*1.5,FH*1.6):new THREE.PlaneGeometry(FW*2.4,FH*2.6),new THREE.MeshBasicMaterial({map:moody?rectPool:pool,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:(cfg.mood===false?(cfg.poolStrength||.35):(cfg.poolStrength||.35)*.7)}));p.position.set(0,moody?-FH*.04:FH*.15,.001);g.add(p);}
     let img;
     if(o.asIs){
       const box=new THREE.Mesh(new THREE.BoxGeometry(FW,FH,D),frameMat);box.position.z=D/2;g.add(box);
@@ -103,7 +105,7 @@ function run(cfg){
     g.position.copy(o.pos);g.lookAt(o.pos.clone().add(o.normal));
     g.traverse(c=>{c.userData.art=g;if(c.isMesh&&!c.material.transparent){c.castShadow=true;}});
     scene.add(g);
-    works.push({g,title:o.title,meta:o.meta||cfg.meta||'',normal:o.normal.clone(),center:o.pos.clone(),size:Math.max(FW,FH*1.25)});
+    works.push({g,title:o.title,meta:o.meta||cfg.meta||'',normal:o.normal.clone(),center:o.pos.clone(),size:Math.max(FW,FH*1.25),half:Math.hypot(FW,FH)/2,FW,FH});
     return g;
   }
   function bench(x,z,rotY,material,len){
@@ -115,7 +117,35 @@ function run(cfg){
   }
 
   const ctx={THREE,scene,renderer,camera,IN,tex,grain,rnd,blob,softShadow,addWork,bench};
-  const room=cfg.build(ctx);   // returns {bounds:{x0,x1,z0,z1}, eye, start:{pos,look}, views:[{label,pos,look}]}
+  // moody gallery light: dim the room, then a ceiling spot on every print
+  const MOOD=(()=>{try{const q=new URLSearchParams(location.search).get('mood');if(q!=null)return q!=='0';}catch(e){}return cfg.mood!==false;})();
+  const TEXQ=(()=>{try{const q=new URLSearchParams(location.search).get('tex');if(q!=null)return q!=='0';}catch(e){}return cfg.textile!==false;})();
+  window.__TEXTILE=MOOD&&TEXQ?cfg.city:null;
+  const room=cfg.build(ctx);
+  if(MOOD){
+    scene.traverse(o=>{if(!o.isLight||o.userData.spot)return;
+      o.intensity*=o.isHemisphereLight?.42:o.isAmbientLight?.42:o.isDirectionalLight?.34:.26;});
+    scene.traverse(o=>{if(o.userData.pano)o.traverse(m=>{if(m.material&&m.material.color)m.material.color.multiplyScalar(.85);});});
+    const can=new THREE.MeshStandardMaterial({color:0x161616,roughness:.45,metalness:.5});
+    const ray=new THREE.Raycaster();const solids=[];scene.traverse(o=>{if(o.isMesh&&!o.material.transparent&&!o.userData.art)solids.push(o);});
+    // art lighting after the usual rule: track heads on the ceiling, aimed about 30 degrees from vertical, warm white (about 3000K),
+    // even edge to edge with little spill; one head for squarish prints, two for wide ones
+    const T30=Math.tan(30*Math.PI/180),up=new THREE.Vector3(0,1,0);
+    works.forEach(w=>{const c=w.center,n=w.normal;const side=new THREE.Vector3().crossVectors(up,n).normalize();
+      const probe=c.clone().addScaledVector(n,1.0);ray.set(probe,up);ray.far=8;const hit=ray.intersectObjects(solids,false)[0];
+      const ceil=hit?hit.point.y:c.y+2.2;const fy=Math.min(ceil-.12,c.y+2.6);const out=Math.max(.6,(fy-c.y)*T30);
+      const heads=(w.FW/w.FH>1.3)?[-w.FW/4,w.FW/4]:[0];
+      heads.forEach(dx=>{const tgtP=c.clone().addScaledVector(side,dx);
+        const lp=tgtP.clone().addScaledVector(n,out);lp.y=fy;
+        const sp=new THREE.SpotLight(0xfff0dc,1.0/Math.sqrt(heads.length),12,1,1,1);sp.userData.spot=true;
+        const d=lp.distanceTo(tgtP);const reach=heads.length>1?Math.hypot(w.FW*.75,w.FH)/2:w.half;
+        sp.angle=Math.min(.95,Math.atan(reach*1.08/d));sp.position.copy(lp);sp.target.position.copy(tgtP);scene.add(sp);scene.add(sp.target);
+        const f=new THREE.Group();const body=new THREE.Mesh(new THREE.CylinderGeometry(.04,.05,.15,16),can);body.rotation.x=Math.PI/2;f.add(body);
+        const lens=new THREE.Mesh(new THREE.CircleGeometry(.036,16),new THREE.MeshBasicMaterial({color:0xfff6e6}));lens.position.z=.076;f.add(lens);
+        f.position.copy(lp);f.lookAt(tgtP);scene.add(f);
+        const sl=Math.max(.02,ceil-fy);const stem=new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,sl,6),can);stem.position.set(lp.x,fy+sl/2,lp.z);scene.add(stem);
+        const plate=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.012,12),can);plate.position.set(lp.x,ceil-.006,lp.z);scene.add(plate);});});
+  }   // returns {bounds:{x0,x1,z0,z1}, eye, start:{pos,look}, views:[{label,pos,look}]}
   const EYE=room.eye||1.6;
 
   // ---- smooth camera: everything eases toward a target ----

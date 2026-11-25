@@ -130,6 +130,7 @@ const Mx={
       g.globalAlpha=.15;g.strokeStyle='#6d4e2e';for(let k=0;k<6;k++){g.lineWidth=rnd(.5,1.5);const x=c*bw+rnd(2,bw-2);g.beginPath();g.moveTo(x,0);g.bezierCurveTo(x+rnd(-3,3),h*.3,x+rnd(-3,3),h*.7,x,h);g.stroke();}g.globalAlpha=.45;g.fillStyle='#4a3522';g.fillRect(c*bw,0,2,h);g.globalAlpha=1;}K.noise(g,w,h,8);}}),
 };
 
+['brickHall','sandstone','archConcrete','boardConcrete','larch'].forEach(k=>{const f=Mx[k];Mx[k]=(...a)=>{const m=f(...a);m.userData.keep=true;return m;};});
 function lights(ctx,pts,col,int,dist){pts.forEach(p=>{const l=new ctx.THREE.PointLight(col||0xfff2e4,int||.25,dist||10,2);l.position.set(...p);ctx.scene.add(l);});}
 /* Hang a whole series on the walls named in plan (then on any other free wall if needed), as large as fits:
    60 in on the long side when there is room, stepping down to 40 in, then two rows. Doors, windows and corners stay clear. */
@@ -340,9 +341,9 @@ C.brickell=function(ctx,cfg){const THREE=ctx.THREE,scene=ctx.scene;
   const door=(at)=>({at,w:2.4,y0:0,y1:2.95,kind:'door'});
   const S=K.space(ctx,{frameMat:alu,cells:[
     {id:'A',x0:-4.5,x1:4.5,z0:0,z1:8,h:3.5,wall,floor,ceil,walls:{E:{open:[{at:4,w:7.6,y0:0,y1:3.35,kind:'glass',cols:3,rows:1,fw:.05,bw:.04}]},N:{open:[door(-1.5)]}},
-      dress:(ctx,c)=>{[[-2.2],[1.4]].forEach(([x])=>{const l=new THREE.Mesh(new THREE.PlaneGeometry(.06,6),new THREE.MeshBasicMaterial({color:0xfffbf4}));l.rotation.x=Math.PI/2;l.position.set(x,c.h-.005,4);scene.add(l);});}},
+      dress:(ctx,c)=>{[[-2.2],[1.4]].forEach(([x])=>{const l=new THREE.Mesh(new THREE.PlaneGeometry(.06,6),new THREE.MeshBasicMaterial({color:window.__TEXTILE?0xcfcac2:0xfffbf4}));l.rotation.x=Math.PI/2;l.position.set(x,c.h-.005,4);scene.add(l);});}},
     {id:'B',x0:-9.5,x1:4.5,z0:-10.3,z1:-.3,h:3.5,wall,floor,ceil,walls:{S:{open:[door(-1.5)]}},
-      dress:(ctx,c)=>{[-6,-2.5,1].forEach(x=>{const l=new THREE.Mesh(new THREE.PlaneGeometry(.06,8.4),new THREE.MeshBasicMaterial({color:0xfffbf4}));l.rotation.x=Math.PI/2;l.position.set(x,c.h-.005,-5.3);scene.add(l);});}}]});
+      dress:(ctx,c)=>{[-6,-2.5,1].forEach(x=>{const l=new THREE.Mesh(new THREE.PlaneGeometry(.06,8.4),new THREE.MeshBasicMaterial({color:window.__TEXTILE?0xcfcac2:0xfffbf4}));l.rotation.x=Math.PI/2;l.position.set(x,c.h-.005,-5.3);scene.add(l);});}}]});
   scene.add(new THREE.HemisphereLight(0xffffff,0xb9c3c9,.68));
   lights(ctx,[[-2.5,3.1,2.5],[-2.5,3.1,5.5],[1.5,3.1,4],[-7,3.1,-5.3],[-3,3.1,-3],[-3,3.1,-8],[1.5,3.1,-5.3]],0xfff6ec,.24,9);
   K.sun(ctx,{from:[40,22,14],to:[0,0,4],intensity:1.25,size:14,color:0xfff1de});

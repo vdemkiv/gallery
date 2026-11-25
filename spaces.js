@@ -90,7 +90,7 @@ function newYork(ctx,cfg){
 
 const CITIES={newYork};
 R.space=function(cfg){const fn=CITIES[cfg.city];
-  R.run({title:cfg.title,subtitle:cfg.subtitle||'Volodymyr Demkiv',meta:cfg.meta,back:cfg.back,shadows:true,far:60000,logDepth:true,
+  R.run({city:cfg.city,textile:cfg.textile,title:cfg.title,subtitle:cfg.subtitle||'Volodymyr Demkiv',meta:cfg.meta,back:cfg.back,shadows:true,far:60000,logDepth:true,
     label:cfg.label||`A gallery showing ${cfg.title}`,bg:cfg.bg||'#1d1c1b',exposure:cfg.exposure||.9,poolStrength:cfg.pool||.22,
     build(ctx){return fn(ctx,cfg);}});
 };
