@@ -307,7 +307,7 @@ def index_page(text, rooms):
 
 
 def main():
-    pages = sorted(f for f in os.listdir(ROOT) if f.endswith(".html"))
+    pages = sorted(f for f in os.listdir(ROOT) if f.endswith(".html") and not f.startswith("google"))
     rooms, configs = [], {}
     for f in pages:
         if f == "index.html":
