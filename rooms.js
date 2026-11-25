@@ -127,8 +127,24 @@ function run(cfg){
   const AREAS=room.areas||[B];
   function clamp(p){let best=null,bd=1e9;for(const a of AREAS){const x=Math.max(a.x0,Math.min(a.x1,p.x)),z=Math.max(a.z0,Math.min(a.z1,p.z)),d=(x-p.x)**2+(z-p.z)**2;if(d<bd){bd=d;best=[x,z];}if(d===0)break;}
     p.x=best[0];p.z=best[1];p.y=EYE;return p;}
+  // walking: stay inside the union of floor areas; slide along walls; route through doorways
+  const inA=(a,x,z)=>x>=a.x0-1e-6&&x<=a.x1+1e-6&&z>=a.z0-1e-6&&z<=a.z1+1e-6;
+  const areaAt=(x,z)=>AREAS.findIndex(a=>inA(a,x,z));
+  function tryMove(p,dx,dz){if(areaAt(p.x,p.z)<0)clamp(p);
+    if(areaAt(p.x+dx,p.z+dz)>=0){p.x+=dx;p.z+=dz;}else if(areaAt(p.x+dx,p.z)>=0)p.x+=dx;else if(areaAt(p.x,p.z+dz)>=0)p.z+=dz;}
+  const ovl=(a,b)=>{const x0=Math.max(a.x0,b.x0),x1=Math.min(a.x1,b.x1),z0=Math.max(a.z0,b.z0),z1=Math.min(a.z1,b.z1);return x0<=x1&&z0<=z1?[(x0+x1)/2,(z0+z1)/2]:null;};
+  let route=[];
+  function routeTo(dest){route=[];const from=cur.pos;let s=areaAt(from.x,from.z);if(s<0){const q=clamp(from.clone());s=areaAt(q.x,q.z);}
+    const d=clamp(dest.clone()),e=areaAt(d.x,d.z);
+    if(s<0||e<0||s===e){tgt.pos.copy(d);return;}
+    const prev=new Array(AREAS.length).fill(-2);prev[s]=-1;const qu=[s];
+    while(qu.length){const i=qu.shift();if(i===e)break;AREAS.forEach((b,j)=>{if(prev[j]===-2&&ovl(AREAS[i],b)){prev[j]=i;qu.push(j);}});}
+    if(prev[e]===-2){tgt.pos.copy(d);return;}
+    const chain=[];for(let i=e;i!==-1;i=prev[i])chain.unshift(i);
+    for(let k=0;k+1<chain.length;k++){const c=ovl(AREAS[chain[k]],AREAS[chain[k+1]]);route.push(new THREE.Vector3(c[0],EYE,c[1]));}
+    route.push(d);tgt.pos.copy(route.shift());}
   function setYaw(y){let d=y-tgt.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));tgt.yaw+=d;}
-  function goPose(pos,look,slow){tgt.pos.copy(clamp(pos.clone()));const a=yawPitchTo(new THREE.Vector3(tgt.pos.x,EYE,tgt.pos.z),look);setYaw(a.yaw);tgt.pitch=a.pitch;posRate=slow?1.6:2.2;lookRate=slow?2.0:2.6;}
+  function goPose(pos,look,slow){routeTo(pos.clone());const fin=route.length?route[route.length-1]:tgt.pos;const a=yawPitchTo(new THREE.Vector3(fin.x,EYE,fin.z),look);setYaw(a.yaw);tgt.pitch=a.pitch;posRate=slow?1.6:2.2;lookRate=slow?2.0:2.6;}
   function viewWork(i){
     const w=works[i];focused=i;
     const vf=THREE.MathUtils.degToRad(camera.fov)/2,hf=Math.atan(Math.tan(vf)*camera.aspect);
@@ -143,10 +159,10 @@ function run(cfg){
   if(works.length<2){prevB.hidden=true;nextB.hidden=true;}
   (room.views||[]).forEach(v=>{const b=el('button',null,v.label);b.type='button';b.onclick=()=>{unfocus();const p=typeof v.pos==='function'?v.pos(camera):v.pos;goPose(p,v.look,true);};views.appendChild(b);});
 
-  ROOMS.jump=(p,l)=>{tgt.pos.set(p[0],EYE,p[2]);cur.pos.copy(tgt.pos);const a=yawPitchTo(cur.pos,new THREE.Vector3(...l));cur.yaw=tgt.yaw=a.yaw;cur.pitch=tgt.pitch=a.pitch;unfocus();hint.classList.add('gone');};
+  ROOMS.jump=(p,l)=>{route=[];tgt.pos.set(p[0],EYE,p[2]);cur.pos.copy(tgt.pos);const a=yawPitchTo(cur.pos,new THREE.Vector3(...l));cur.yaw=tgt.yaw=a.yaw;cur.pitch=tgt.pitch=a.pitch;unfocus();hint.classList.add('gone');};
   ROOMS.camera=camera;
   function forward(){return new THREE.Vector3(-Math.sin(tgt.yaw),0,-Math.cos(tgt.yaw));}
-  function nudge(f,s){const fw=forward(),sd=new THREE.Vector3(-fw.z,0,fw.x);tgt.pos.addScaledVector(fw,f).addScaledVector(sd,s);clamp(tgt.pos);posRate=3.2;}
+  function nudge(f,s){route=[];const fw=forward(),sd=new THREE.Vector3(-fw.z,0,fw.x);const dx=fw.x*f+sd.x*s,dz=fw.z*f+sd.z*s;const n=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.25));for(let i=0;i<n;i++)tryMove(tgt.pos,dx/n,dz/n);tgt.pos.y=EYE;posRate=3.2;}
 
   // ---- input: drag to look, tap to go, wheel and pinch to move (all damped) ----
   const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
@@ -168,7 +184,7 @@ function run(cfg){
     const r=renderer.domElement.getBoundingClientRect();ndc.set(((x-r.left)/r.width)*2-1,-((y-r.top)/r.height)*2+1);ray.setFromCamera(ndc,camera);
     const hit=ray.intersectObjects(scene.children,true).filter(h=>h.object.visible&&h.object.material&&!h.object.material.transparent)[0];if(!hit)return;
     const art=hit.object.userData.art;if(art){const i=works.findIndex(w=>w.g===art);if(i>=0){viewWork(i);return;}}
-    if(hit.object.name==='floor'){unfocus();tgt.pos.copy(clamp(new THREE.Vector3(hit.point.x,EYE,hit.point.z)));posRate=1.8;hint.classList.add('gone');}
+    if(hit.object.name==='floor'){unfocus();routeTo(new THREE.Vector3(hit.point.x,EYE,hit.point.z));posRate=1.8;hint.classList.add('gone');}
   }
   let wheelAcc=0;
   stage.addEventListener('wheel',e=>{e.preventDefault();const d=e.deltaMode===1?e.deltaY*30:e.deltaY;wheelAcc+=Math.max(-120,Math.min(120,d));if(focused>=0)unfocus();hint.classList.add('gone');},{passive:false});
@@ -190,6 +206,7 @@ function run(cfg){
     if(focused<0){if(keys['arrowleft']){tgt.yaw+=1.2*dt;lookRate=6;}if(keys['arrowright']){tgt.yaw-=1.2*dt;lookRate=6;}}
     if(f||s){if(focused>=0)unfocus();nudge(f*2,s*2);hint.classList.add('gone');}
     const kp=reduce?1:1-Math.exp(-dt*posRate), kl=reduce?1:1-Math.exp(-dt*lookRate);
+    if(route.length&&cur.pos.distanceTo(tgt.pos)<.45)tgt.pos.copy(route.shift());
     cur.pos.lerp(tgt.pos,kp);cur.yaw+=(tgt.yaw-cur.yaw)*kl;cur.pitch+=(tgt.pitch-cur.pitch)*kl;
     camera.position.copy(cur.pos);camera.rotation.set(cur.pitch,cur.yaw,0);
     if(room.tick)room.tick(dt,camera);

@@ -79,13 +79,7 @@ function newYork(ctx,cfg){
   out.wall(P.sky(2048,1024,{stops:[[0,'#9db7cf'],[.7,'#dbe3e8'],[1,'#eef0ee']],clouds:'thin'}),420,1400,500,-20,0,1.12,false);
   [-9.5,-1.2,7.8].forEach(x=>out.wall(P.leafy(),3.4,5.5,8.2,0,x,1.15));
   // hang: front room W and E walls, N wall either side of the door; back room N, W, E
-  const ws=cfg.works.map(w=>sized(w,60));let i=0;const next=()=>ws[(i++)%ws.length];const Y=1.72;
-  [[2.2],[5],[7.8]].forEach(([z])=>S.hang('A','W',z,Y,next()));
-  [[7.8],[5],[2.2]].forEach(([z])=>S.hang('A','E',z,Y,next()));
-  [-4.6,4.6].forEach(x=>S.hang('A','N',x,Y,next()));
-  [-4.2,0,4.2].forEach(x=>S.hang('B','N',x,Y,next()));
-  [-8.2,-3.2].forEach(z=>S.hang('B','W',z,Y,next()));
-  [-3.2,-8.2].forEach(z=>S.hang('B','E',z,Y,next()));
+  R.hangAll(S,[['A','W'],['A','E'],['A','N'],['B','N'],['B','W'],['B','E']],cfg.works,1.72);
   const bench=new THREE.MeshStandardMaterial({color:0x2f2924,roughness:.55});ctx.bench(0,-5.6,0,bench,2.2);ctx.bench(0,4.8,0,bench,2.0);
   return {areas:S.areas(.7).concat([{x0:-1.2,x1:1.2,z0:-1.2,z1:.8}]),eye:1.6,
     start:{pos:new THREE.Vector3(2.4,1.6,8.8),look:new THREE.Vector3(-.6,1.6,-6)},

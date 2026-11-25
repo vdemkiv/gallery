@@ -77,7 +77,15 @@ K.space=function(ctx,spec){
     const p=new THREE.Vector3(f.o[0]+f.u[0]*at+f.n[0]*.002,y,f.o[2]+f.u[2]*at+f.n[2]*.002);
     return ctx.addWork(Object.assign({title:work.t,file:work.f,meta:work.m,pos:p,normal:new THREE.Vector3(...f.n)},work.size||{},o||{}));}
   function wallPoint(cellId,side,at,y,d){const c=cells[cellId],f=frame(c,side);return new THREE.Vector3(f.o[0]+f.u[0]*at+f.n[0]*(d||0),y,f.o[2]+f.u[2]*at+f.n[2]*(d||0));}
-  function areas(m){return spec.cells.map(c=>({x0:c.x0+(c.mx!=null?c.mx:m),x1:c.x1-(c.mx!=null?c.mx:m),z0:c.z0+(c.mz!=null?c.mz:m),z1:c.z1-(c.mz!=null?c.mz:m)})).concat(spec.links||[]);}
+  function areas(m){const A=spec.cells.map(c=>({x0:c.x0+(c.mx!=null?c.mx:m),x1:c.x1-(c.mx!=null?c.mx:m),z0:c.z0+(c.mz!=null?c.mz:m),z1:c.z1-(c.mz!=null?c.mz:m)}));
+    // a walkable strip through every doorway that leads into another cell
+    const inCell=(x,z)=>spec.cells.some(c=>x>c.x0&&x<c.x1&&z>c.z0&&z<c.z1);const L=[];const r=1.6,pad=.35;
+    spec.cells.forEach(c=>Object.entries(c.walls||{}).forEach(([side,wl])=>(wl.open||[]).forEach(o=>{if(o.kind!=='door')return;const h=o.w/2-pad;if(h<=.2)return;
+      if(side==='N'&&inCell(o.at,c.z0-1))L.push({x0:o.at-h,x1:o.at+h,z0:c.z0-r,z1:c.z0+r});
+      if(side==='S'&&inCell(o.at,c.z1+1))L.push({x0:o.at-h,x1:o.at+h,z0:c.z1-r,z1:c.z1+r});
+      if(side==='W'&&inCell(c.x0-1,o.at))L.push({x0:c.x0-r,x1:c.x0+r,z0:o.at-h,z1:o.at+h});
+      if(side==='E'&&inCell(c.x1+1,o.at))L.push({x0:c.x1-r,x1:c.x1+r,z0:o.at-h,z1:o.at+h});})));
+    return A.concat(L,spec.links||[]);}
   return {cells,hang,wallPoint,areas,place,frame};
 };
 

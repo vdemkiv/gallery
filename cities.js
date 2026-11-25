@@ -124,7 +124,31 @@ const Mx={
 };
 
 function lights(ctx,pts,col,int,dist){pts.forEach(p=>{const l=new ctx.THREE.PointLight(col||0xfff2e4,int||.25,dist||10,2);l.position.set(...p);ctx.scene.add(l);});}
-function hangAll(S,plan,works,Y){let i=0;plan.forEach(([cell,side,ats])=>ats.forEach(a=>S.hang(cell,side,a,Y||1.72,works[(i++)%works.length])));}
+/* Hang a whole series on the walls named in plan (then on any other free wall if needed), as large as fits:
+   60 in on the long side when there is room, stepping down to 40 in, then two rows. Doors, windows and corners stay clear. */
+R.hangAll=hangAll;function hangAll(S,plan,works,Y){Y=Y||1.72;const raw=works.map(w=>w.asIs?w:Object.assign({},w,{size:null}));
+  const segsOf=(cell,side)=>{const c=S.cells[cell];if(!c)return [];const wl=(c.walls||{})[side]||{};if(wl.none)return [];
+    const a0=(side==='N'||side==='S')?c.x0:c.z0,a1=(side==='N'||side==='S')?c.x1:c.z1;let free=[[a0+.9,a1-.9]];
+    (wl.open||[]).forEach(o=>{const l=o.at-o.w/2-.45,r=o.at+o.w/2+.45;free=free.flatMap(([x,y])=>{const out=[];if(l>x)out.push([x,Math.min(y,l)]);if(r<y)out.push([Math.max(x,r),y]);return out;});});
+    return free.filter(([x,y])=>y-x>1.2).map(([x,y])=>({cell,side,x,y,len:y-x,items:[]}));};
+  const seen=new Set();const order=[];plan.forEach(([c,sd])=>{seen.add(c+sd);order.push([c,sd]);});
+  const extra=[];Object.keys(S.cells).forEach(c=>['N','E','S','W'].forEach(sd=>{if(!seen.has(c+sd))extra.push([c,sd]);}));
+  const fw=(w,L)=>w.asIs?w.size.w*.0254+.1:((w.a>=1?L:L*w.a)+12.5)*.0254, GAP=.8;
+  function pack(segs,L){segs.forEach(g=>{g.items=[];g.used=0;});
+    for(const w of raw){const need=fw(w,L);let best=null;for(const g of segs){const add=need+(g.items.length?GAP:0);if(g.used+add<=g.len&&(!best||g.used/g.len<best.used/best.len))best=g;}
+      if(!best)return false;best.used+=need+(best.items.length?GAP:0);best.items.push(w);}return true;}
+  let segs=order.flatMap(([c,sd])=>segsOf(c,sd)),L=null;
+  for(const tryL of [60,54,48,44,40]){if(pack(segs,tryL)){L=tryL;break;}}
+  if(L===null){segs=segs.concat(extra.flatMap(([c,sd])=>segsOf(c,sd)));for(const tryL of [60,54,48,44,40,36]){if(pack(segs,tryL)){L=tryL;break;}}}
+  let rows=1;if(L===null){rows=2;L=30;const pairs=[];for(let i=0;i<raw.length;i+=2)pairs.push(raw.slice(i,i+2));
+    const keep=raw.slice();raw.length=0;pairs.forEach(p=>raw.push({pair:p,a:Math.max(...p.map(w=>w.a>=1?1:w.a)),asIs:false}));
+    let ok=false;for(const tryL of [34,30,26,22]){if(pack(segs,tryL)){L=tryL;ok=true;break;}}}
+  segs.forEach(g=>{if(!g.items.length)return;const ws=g.items.map(w=>fw(w,L));const tot=ws.reduce((a,b)=>a+b,0)+GAP*(ws.length-1);
+    const room=g.len-tot, gap=GAP+(g.items.length>1?Math.min(room/(g.items.length-1),1.4):0);const tot2=ws.reduce((a,b)=>a+b,0)+gap*(ws.length-1);
+    let x=(g.x+g.y)/2-tot2/2;g.items.forEach((w,k)=>{const at=x+ws[k]/2;x+=ws[k]+gap;
+      if(w.pair){const dy=(L*.0254+.32)/2+.06;w.pair.forEach((pw,j)=>S.hang(g.cell,g.side,at,Y+(w.pair.length>1?(j?-dy:dy):0),R.sized(pw,L)));}
+      else S.hang(g.cell,g.side,at,Y,w.asIs?w:R.sized(w,L));});});
+  (window.__hang=window.__hang||[]).push({L,rows,n:works.length,segs:segs.filter(g=>g.items.length).length});return {L,rows};}
 function benchAt(ctx,list,col){const m=new ctx.THREE.MeshStandardMaterial({color:col||0x5a4634,roughness:.55});list.forEach(([x,z,r,l])=>ctx.bench(x,z,r||0,m,l||2.2));}
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 
@@ -293,11 +317,10 @@ C.museum=function(ctx,cfg){const THREE=ctx.THREE,scene=ctx.scene;
         [[-4.5,cz],[4.5,cz]].forEach(([x,z])=>{const b=new THREE.Mesh(new THREE.BoxGeometry(.08,.6,9),vel);b.position.set(x,c.h-.3,z);scene.add(b);});
         lights(ctx,[[-4,c.h-1,cz-3],[4,c.h-1,cz-3],[-4,c.h-1,cz+3],[4,c.h-1,cz+3]],0xf6f4ef,.32,13);}}]});
   scene.add(new THREE.HemisphereLight(0xf8f4ec,0x4e4943,.55));
-  const ws=cfg.works.map(w=>sized(w,60));let i=0;
-  [-5,-10.5,-16,-21.5,-27].forEach((z,k)=>S.hang('K',k%2?'E':'W',z,1.75,ws[(i++)%ws.length]));
-  [[ 'H','N',[-4.4,0,4.4]],['H','W',[-44.2,-40.1,-36]],['H','E',[-36,-40.1,-44.2]]].forEach(([c,s,a])=>a.forEach(at=>S.hang(c,s,at,1.9,ws[(i++)%ws.length])));
+  hangAll(S,[['K','W'],['K','E'],['H','N'],['H','W'],['H','E']],cfg.works,1.8);
   benchAt(ctx,[[0,-40,0,2.6],[0,-16,Math.PI/2,2.2]],0x3e3024);
   return {areas:S.areas(.75),eye:1.6,start:{pos:V(0,1.6,-1.5),look:V(0,1.8,-52)},
     views:[{label:'Corridor',pos:V(0,1.6,-1.5),look:V(0,1.8,-48)},{label:'Skylit hall',pos:V(-4.6,1.6,-33.4),look:V(4,2,-47)}]};
 };
+C.ny=C.newYork||(R.CITIES&&R.CITIES.newYork);C.la=C.losAngeles;
 })();
