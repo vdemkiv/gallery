@@ -62,7 +62,7 @@ K.textile=function(spec){const city=window.__TEXTILE;if(!city)return;const P=K.T
 
 /* ---------- the space ---------- */
 K.space=function(ctx,spec){
-  const THREE=T(),scene=ctx.scene;const cells={};const floors=[];K.textile(spec);
+  const THREE=T(),scene=ctx.scene;const cells={};const floors=[];K.textile(spec);K._cells=spec.cells;K._windows=[];
   const aoTex=K.ctex(K.canvas(8,256,(g,w,h)=>{const r=g.createLinearGradient(0,h,0,0);r.addColorStop(0,'rgba(0,0,0,1)');r.addColorStop(.35,'rgba(0,0,0,.35)');r.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=r;g.fillRect(0,0,w,h);}),false);
   aoTex.wrapS=aoTex.wrapT=THREE.ClampToEdgeWrapping;
   const aoMat=(o)=>new THREE.MeshBasicMaterial({map:aoTex,color:0x000000,transparent:true,opacity:o,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});
@@ -91,7 +91,7 @@ K.space=function(ctx,spec){
       rv(o.w,t,o.at,o.y1,t,0,Math.PI/2);if(o.y0>0)rv(o.w,t,o.at,o.y0,t,0,-Math.PI/2);
       // threshold: a flat stone plate filling this cell's half of the wall thickness, so no gap or overlap shows underfoot
       if(o.y0<=0){const th=new THREE.Mesh(new THREE.PlaneGeometry(o.w,t/2),thresholdMat||(thresholdMat=new THREE.MeshStandardMaterial({color:0xb9b2a6,roughness:.75})));place(th,f,o.at,.001,-t/4);th.rotateX(-Math.PI/2);th.receiveShadow=true;scene.add(th);}
-      if(o.kind==='window'||o.kind==='glass')glazing(f,o,t,wall);
+      if(o.kind==='window'||o.kind==='glass'){glazing(f,o,t,wall);(K._windows=K._windows||[]).push({f,o,t,c});}
     });
     seg(a,f.a1,0,H);
     // corner shading where wall meets floor and ceiling (skip across door openings)
@@ -110,7 +110,7 @@ K.space=function(ctx,spec){
     const cols=o.cols||1,rows=o.rows||1;
     for(let k=1;k<cols;k++)bar(o.bw||fw*.6,Hh,o.at-W/2+k*W/cols,(o.y0+o.y1)/2,.06);
     for(let k=1;k<rows;k++)bar(W,o.bw||fw*.6,o.at,o.y0+k*Hh/rows,.06);
-    const gl=new THREE.Mesh(new THREE.PlaneGeometry(W,Hh),new THREE.MeshBasicMaterial({color:0xdfe8ee,transparent:true,opacity:.07,depthWrite:false}));place(gl,f,o.at,(o.y0+o.y1)/2,-t*.55);scene.add(gl);
+    const gl=new THREE.Mesh(new THREE.PlaneGeometry(W,Hh),new THREE.MeshBasicMaterial({color:0xdfe8ee,transparent:true,opacity:.07,depthWrite:false}));gl.userData.glass=true;place(gl,f,o.at,(o.y0+o.y1)/2,-t*.55);scene.add(gl);
     if(o.sill){const s=new THREE.Mesh(new THREE.BoxGeometry(W+.12,.045,.34),o.sill);place(s,f,o.at,o.y0-.02,.06);s.castShadow=true;s.receiveShadow=true;scene.add(s);}
   }
   function hang(cellId,side,at,y,work,o){const c=cells[cellId],f=frame(c,side);
@@ -142,6 +142,11 @@ K.outside=function(ctx,o){const THREE=T();const g=new THREE.Group();
     ground(c,d0,d1,w,y,bright,tile){const tx=K.ctex(c);if(tile!==0){const t=tile||10;tx.repeat.set(w/t,(d1-d0)/t);}const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d1-d0),new THREE.MeshBasicMaterial({map:tx,fog:false,color:new THREE.Color(bright||1,bright||1,bright||1)}));m.rotation.x=-Math.PI/2;m.position.set(0,y,(d0+d1)/2);g.add(m);return m;},
     wall(c,d,w,h,y,x,bright,alpha){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:K.ctex(c),transparent:alpha!==false,fog:false,depthWrite:alpha===false,color:new THREE.Color(bright||1,bright||1,bright||1),alphaTest:alpha===false?0:.02}));
       m.rotation.y=Math.PI;m.position.set(x||0,y+h/2,d);g.add(m);return m;},
+    // a real photograph standing across the street: d distance, w x h metres, bottom at y; mirror repeats it sideways (n copies)
+    photo(src,d,w,h,y,o){o=o||{};const tx=new THREE.TextureLoader().load(src);tx.encoding=THREE.sRGBEncoding;tx.anisotropy=8;const n=o.copies||1;
+      if(n>1){tx.wrapS=THREE.MirroredRepeatWrapping;tx.repeat.set(n,1);tx.offset.set(-(n-1)/2,0);}
+      const b=o.bright||1;const m=new THREE.Mesh(new THREE.PlaneGeometry(w*n,h),new THREE.MeshBasicMaterial({map:tx,fog:false,toneMapped:false,color:new THREE.Color(b,b,b)}));
+      m.rotation.y=Math.PI;m.position.set(o.x||0,y+h/2,d);g.add(m);g.userData.photo=true;return m;},
     box(w,h,dpt,col,x,y,d){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,dpt),new THREE.MeshBasicMaterial({color:col,fog:false}));m.position.set(x,y+h/2,d);g.add(m);return m;}};
   return api;};
 
@@ -186,5 +191,70 @@ P.leafy=(o)=>K.canvas(512,768,(g,w,h)=>{o=o||{};g.strokeStyle=o.trunk||'#3c352d'
 P.pine=(o)=>K.canvas(256,768,(g,w,h)=>{o=o||{};g.fillStyle='#3a2e24';g.fillRect(w/2-5,h*.8,10,h*.2);const col=o.col||'#22301f';
   for(let y=h*.05;y<h*.86;y+=7){const k=(y-h*.05)/(h*.8),hw=6+k*w*.42;g.fillStyle=col;g.globalAlpha=.85;g.beginPath();g.moveTo(w/2,y-10);g.lineTo(w/2-hw*K.rnd(.8,1),y+12);g.lineTo(w/2+hw*K.rnd(.8,1),y+12);g.fill();}g.globalAlpha=1;});
 
+/* ---------- realism: bounce light, soft reflections, window glass, lens ----------
+   Everything here is baked once when the room opens: the room is photographed from where you stand into an
+   environment map that lights and reflects off every surface. No extra lights per frame, so the rooms stay fast. */
+window.ROOMS.realism=function(ctx,room,cfg){const THREE=T(),scene=ctx.scene,renderer=ctx.renderer;
+  const R=Object.assign({fill:.5,env:.95,floorRough:.42,view:1.0,veil:.13,spill:.16},cfg.realism||{});
+  // daylight and sky fill now come from the room itself, so the flat fills are turned down
+  scene.traverse(o=>{if(o.isHemisphereLight||o.isAmbientLight)o.intensity*=R.fill;});
+  const mats=new Set();scene.traverse(o=>{if(o.isMesh&&o.material&&o.material.isMeshStandardMaterial&&!(o.userData.art))mats.add(o.material);});
+  scene.traverse(o=>{if(o.name==='floor'&&o.material.isMeshStandardMaterial){const m=o.material;m.roughness=Math.min(m.roughness,R.floorRough);m.userData.floor=true;}});
+  mats.forEach(m=>{m.envMapIntensity=m.userData.floor?R.env*.9:R.env;m.needsUpdate=true;});
+  // glass: a faint reflection of the room, as real window glass shows from inside
+  scene.traverse(o=>{if(o.userData.glass){o.material=new THREE.MeshStandardMaterial({color:0xf2f5f7,roughness:.05,metalness:0,transparent:true,opacity:R.veil,depthWrite:false,envMapIntensity:1.6});}});
+  // daylight spilling across the floor in front of every window (painted, not a light)
+  const spill=K.ctex(K.canvas(64,256,(g,w,h)=>{const r=g.createLinearGradient(0,0,0,h);r.addColorStop(0,'rgba(255,252,246,1)');r.addColorStop(.35,'rgba(255,252,246,.45)');r.addColorStop(1,'rgba(255,252,246,0)');g.fillStyle=r;g.fillRect(0,0,w,h);
+    const s2=g.createLinearGradient(0,0,w,0);s2.addColorStop(0,'rgba(0,0,0,1)');s2.addColorStop(.12,'rgba(0,0,0,0)');s2.addColorStop(.88,'rgba(0,0,0,0)');s2.addColorStop(1,'rgba(0,0,0,1)');g.globalCompositeOperation='destination-out';g.fillStyle=s2;g.fillRect(0,0,w,h);}),false);
+  spill.wrapS=spill.wrapT=THREE.ClampToEdgeWrapping;
+  (K._windows||[]).forEach(({f,o})=>{if(o.y0>1.2)return;const L=Math.min(4.5,(o.y1-o.y0)*1.1);
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(o.w*1.05,L),new THREE.MeshBasicMaterial({map:spill,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:R.spill*(o.y0<.4?1:.7),color:0xfff8ee}));
+    const p=new THREE.Vector3(f.o[0]+f.u[0]*o.at+f.n[0]*L/2,.004,f.o[2]+f.u[2]*o.at+f.n[2]*L/2);m.position.copy(p);m.lookAt(p.clone().add(new THREE.Vector3(0,1,0)));
+    // texture top edge (v=1 -> v=0 flipped) must face the window
+    const n=new THREE.Vector3(...f.n);m.up.set(-n.x,0,-n.z);m.lookAt(p.clone().add(new THREE.Vector3(0,1,0)));m.renderOrder=1;scene.add(m);});
+  // lens: a soft vignette, like a photograph of a room
+  const v=document.createElement('div');v.setAttribute('aria-hidden','true');v.style.cssText='position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 85% 80% at 50% 48%,rgba(0,0,0,0) 55%,rgba(16,12,8,.28) 100%)';
+  document.getElementById('stage').after(v);
+  const pm=new THREE.PMREMGenerator(renderer);pm.compileCubemapShader();
+  const cubeRT=new THREE.WebGLCubeRenderTarget(256,{format:THREE.RGBAFormat,generateMipmaps:false,encoding:THREE.sRGBEncoding});
+  const cubeCam=new THREE.CubeCamera(.05,9000,cubeRT);scene.add(cubeCam);
+  const smallRT=new THREE.WebGLCubeRenderTarget(24,{format:THREE.RGBAFormat,generateMipmaps:false,encoding:THREE.sRGBEncoding});
+  const smallCam=new THREE.CubeCamera(.05,9000,smallRT);scene.add(smallCam);
+  // bounce light: one soft light probe (spherical harmonics) for the whole space; nearly free to draw
+  const probe=new THREE.LightProbe();probe.intensity=R.env;scene.add(probe);
+  // reflections: only glass, benches and metal fixtures carry a reflection map (small areas, so it stays fast;
+  // a reflection map on the floor cost about 10% per frame, so floors take the bounce light only)
+  const cells=(K._cells||[]).slice(0,10);const startP=(room.envAt||room.start.pos).clone();
+  const probes=cells.length?cells.map(c=>({c,w:(c.x1-c.x0)*(c.z1-c.z0),p:new THREE.Vector3((c.x0+c.x1)/2,room.eye||1.6,(c.z0+c.z1)/2),rt:null,mats:new Map(),sh:null})):[{c:null,w:1,p:startP.setY(room.eye||1.6),rt:null,mats:new Map(),sh:null}];
+  const inCell=(c,v,pad)=>v.x>=c.x0-pad&&v.x<=c.x1+pad&&v.z>=c.z0-pad&&v.z<=c.z1+pad;
+  const vc=new THREE.Vector3(),box=new THREE.Box3();
+  scene.traverse(o=>{if(!o.isMesh||!o.material||!o.material.isMeshStandardMaterial)return;if(!(o.userData.glass||o.userData.benchPart||o.material.userData.fixture||o.material.metalness>.25))return;box.setFromObject(o);box.getCenter(vc);
+    let pr=probes[0];if(cells.length){pr=probes.find(q=>inCell(q.c,vc,.02))||probes.reduce((a,q)=>q.p.distanceToSquared(vc)<a.p.distanceToSquared(vc)?q:a,probes[0]);}
+    let m=pr.mats.get(o.material);if(!m){m=o.material.clone();m.userData=Object.assign({},o.material.userData);pr.mats.set(o.material,m);}o.material=m;});
+  const px=new Uint8Array(24*24*4),col=new THREE.Color(),dir=new THREE.Vector3(),basis=new Array(9).fill(0);
+  function shOf(rt){const sh=new THREE.SphericalHarmonics3();const n=rt.width,ps=2/n;let tw=0;
+    for(let f=0;f<6;f++){renderer.readRenderTargetPixels(rt,0,0,n,n,px,f);
+      for(let i=0;i<px.length;i+=4){col.setRGB(px[i]/255,px[i+1]/255,px[i+2]/255).convertSRGBToLinear();const k=i/4,cx=-1+(k%n+.5)*ps,cy=1-(Math.floor(k/n)+.5)*ps;
+        switch(f){case 0:dir.set(1,cy,-cx);break;case 1:dir.set(-1,cy,cx);break;case 2:dir.set(cx,1,-cy);break;case 3:dir.set(cx,-1,cy);break;case 4:dir.set(cx,cy,1);break;default:dir.set(-cx,cy,-1);}
+        const l2=dir.lengthSq(),wt=4/(Math.sqrt(l2)*l2);tw+=wt;dir.normalize();THREE.SphericalHarmonics3.getBasisAt(dir,basis);
+        for(let j=0;j<9;j++){sh.coefficients[j].x+=basis[j]*col.r*wt;sh.coefficients[j].y+=basis[j]*col.g*wt;sh.coefficients[j].z+=basis[j]*col.b*wt;}}}
+    const nm=4*Math.PI/tw;sh.coefficients.forEach(c=>c.multiplyScalar(nm));return sh;}
+  function bakeOne(pr,full){
+    const hidden=[];scene.traverse(o=>{if(o.userData.glass&&o.visible){o.visible=false;hidden.push(o);}});probe.visible=false;
+    const tm=renderer.toneMapping;renderer.toneMapping=THREE.NoToneMapping;
+    smallCam.position.copy(pr.p);smallCam.updateMatrixWorld(true);smallCam.update(renderer,scene);pr.sh=shOf(smallRT);
+    if(pr.mats.size&&full!==false){cubeCam.position.copy(pr.p);cubeCam.updateMatrixWorld(true);cubeCam.update(renderer,scene);
+      const n=pm.fromCubemap(cubeRT.texture);if(pr.rt)pr.rt.dispose();pr.rt=n;pr.mats.forEach(m=>{m.envMap=n.texture;m.needsUpdate=true;});}
+    renderer.toneMapping=tm;hidden.forEach(o=>o.visible=true);probe.visible=true;}
+  function bake(){probes.forEach(p=>bakeOne(p));
+    // the probe is the floor-area-weighted mix of every room in the space
+    const tot=probes.reduce((a,p)=>a+p.w,0);probe.sh.zero();probes.forEach(p=>{for(let j=0;j<9;j++)probe.sh.coefficients[j].addScaledVector(p.sh.coefficients[j],p.w/tot);});}
+  bake();
+  // bake again once the prints and the view outside have arrived, so they show in the reflections
+  let last=0;const again=()=>{const t=performance.now();if(t-last<400)return;last=t;bake();};
+  const prev=window.ROOMS.onStart;window.ROOMS.onStart=()=>{if(prev)prev();again();};
+  const mgr=THREE.DefaultLoadingManager,prevLoad=mgr.onLoad;mgr.onLoad=function(){if(prevLoad)prevLoad.apply(this,arguments);setTimeout(again,60);};
+  window.ROOMS.rebake=bake;
+};
 window.KIT=K;
 })();

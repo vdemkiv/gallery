@@ -234,12 +234,42 @@ function run(cfg){
     works.push({g,title:o.title,meta:o.meta||cfg.meta||'',normal:o.normal.clone(),center:o.pos.clone(),size:Math.max(FW,FH*1.25),half:Math.hypot(FW,FH)/2,FW,FH});
     return g;
   }
+  // ---- gallery bench: solid oak base (two slab ends and a stretcher) under an upholstered leather seat, soft edges ----
+  const BT={};
+  function benchTex(){if(BT.oak)return BT;
+    BT.oak=tex(1024,256,(g,w,h)=>{g.fillStyle='#fff';g.fillRect(0,0,w,h);
+      for(let i=0;i<260;i++){const y=rnd(0,h),a=rnd(.04,.16);g.globalAlpha=a;g.strokeStyle=Math.random()<.7?'#5a4128':'#e8d6bd';g.lineWidth=rnd(.6,2.4);g.beginPath();g.moveTo(0,y);
+        g.bezierCurveTo(w*.3,y+rnd(-5,5),w*.65,y+rnd(-5,5),w,y+rnd(-3,3));g.stroke();}
+      for(let i=0;i<14;i++){g.globalAlpha=.06;g.fillStyle='#6b4e30';g.beginPath();g.ellipse(rnd(0,w),rnd(0,h),rnd(30,90),rnd(3,7),0,0,7);g.fill();}g.globalAlpha=1;grain(g,w,h,10);},[1,1]);
+    BT.leather=tex(512,512,(g,w,h)=>{g.fillStyle='#f4f4f4';g.fillRect(0,0,w,h);for(let i=0;i<9000;i++){g.globalAlpha=rnd(.03,.09);g.fillStyle=Math.random()<.5?'#000':'#fff';g.beginPath();g.ellipse(rnd(0,w),rnd(0,h),rnd(1,3.5),rnd(1,2.5),rnd(0,3),0,7);g.fill();}g.globalAlpha=1;grain(g,w,h,8);},[3,3]);
+    return BT;}
+  function slab(w,d,h,r,bev){ // rounded box: w along x, d along z, h tall, base at y=0
+    const sh=new THREE.Shape(),x=w/2-bev,y=d/2-bev,rr=Math.max(.001,Math.min(r,x,y));
+    sh.moveTo(-x+rr,-y);sh.lineTo(x-rr,-y);sh.quadraticCurveTo(x,-y,x,-y+rr);sh.lineTo(x,y-rr);sh.quadraticCurveTo(x,y,x-rr,y);sh.lineTo(-x+rr,y);sh.quadraticCurveTo(-x,y,-x,y-rr);sh.lineTo(-x,-y+rr);sh.quadraticCurveTo(-x,-y,-x+rr,-y);
+    const geo=new THREE.ExtrudeGeometry(sh,{depth:Math.max(.001,h-2*bev),bevelEnabled:bev>0,bevelThickness:bev,bevelSize:bev,bevelSegments:2,curveSegments:3});
+    geo.rotateX(-Math.PI/2);geo.translate(0,bev,0);return geo;}
+  const benchMats=new Map();
   function bench(x,z,rotY,material,len){
-    const b=new THREE.Group(),L=len||1.8;
-    const t=new THREE.Mesh(new THREE.BoxGeometry(L,.06,.46),material);t.position.y=.43;b.add(t);
-    [-(L/2-.08),(L/2-.08)].forEach(px=>{const l=new THREE.Mesh(new THREE.BoxGeometry(.06,.4,.42),material);l.position.set(px,.2,0);b.add(l);});
-    const s=new THREE.Mesh(new THREE.PlaneGeometry(L+.5,.95),new THREE.MeshBasicMaterial({map:blob,transparent:true,depthWrite:false}));s.rotation.x=-Math.PI/2;s.position.y=.004;b.add(s);
-    b.position.set(x,0,z);b.rotation.y=rotY||0;scene.add(b);return b;
+    const T=benchTex(),b=new THREE.Group(),L=len||1.8,D=.46;
+    let m=benchMats.get(material);
+    if(!m){const wood=material.color.clone();const light=wood.getHSL({}).l;
+      const oak=new THREE.MeshStandardMaterial({color:new THREE.Color(light>.35?'#b49a7c':(light>.2?'#7e6248':'#6e543d')).convertSRGBToLinear(),map:T.oak,roughness:.48});
+      oak.map.repeat.set(1.2,1);
+      // seat: dark leather on dark oak, warm grey wool on pale oak
+      const seat=light>.35?new THREE.MeshStandardMaterial({color:new THREE.Color('#9b968e').convertSRGBToLinear(),map:T.leather,roughness:.95})
+                          :new THREE.MeshStandardMaterial({color:new THREE.Color('#3b3430').convertSRGBToLinear(),map:T.leather,roughness:.5});
+      const legs=oak.clone();legs.map=T.oak.clone();legs.map.needsUpdate=true;legs.map.center.set(.5,.5);legs.map.rotation=Math.PI/2;legs.map.repeat.set(1.2,1);
+      m={oak,seat,legs};benchMats.set(material,m);}
+    const part=(geo,mat,y,cast)=>{const o=new THREE.Mesh(geo,mat);o.position.y=y||0;o.castShadow=cast!==false;o.receiveShadow=true;o.userData.benchPart=true;b.add(o);return o;};
+    // slab ends, set in from the seat edge
+    const endW=.05,inset=.16;[-(L/2-inset),(L/2-inset)].forEach(px=>{const e=part(slab(endW,D-.06,.36,.008,.006),m.legs,0,false);e.position.x=px;});
+    const st=part(slab(L-2*inset,.05,.07,.006,.005),m.oak,.16,false);
+    part(slab(L,D,.04,.02,.008),m.oak,.36);          // oak platform
+    part(slab(L-.03,D-.03,.07,.05,.025),m.seat,.40,false); // upholstered seat with soft rolled edges
+    // contact shadows: a broad soft one and a tight dark one under each end
+    const s=new THREE.Mesh(new THREE.PlaneGeometry(L+.5,.95),new THREE.MeshBasicMaterial({map:blob,transparent:true,depthWrite:false,opacity:.8}));s.rotation.x=-Math.PI/2;s.position.y=.004;b.add(s);
+    [-(L/2-inset),(L/2-inset)].forEach(px=>{const c=new THREE.Mesh(new THREE.PlaneGeometry(.32,.7),new THREE.MeshBasicMaterial({map:blob,transparent:true,depthWrite:false,opacity:.75}));c.rotation.x=-Math.PI/2;c.position.set(px,.005,0);b.add(c);});
+    b.userData.bench=true;b.position.set(x,0,z);b.rotation.y=rotY||0;scene.add(b);return b;
   }
 
   const ctx={THREE,scene,renderer,camera,IN,tex,grain,rnd,blob,softShadow,addWork,bench,framed};
@@ -253,7 +283,7 @@ function run(cfg){
     scene.traverse(o=>{if(!o.isLight||o.userData.spot)return;
       o.intensity*=o.isHemisphereLight?.42:o.isAmbientLight?.42:o.isDirectionalLight?.34:.26;});
     scene.traverse(o=>{if(o.userData.pano)o.traverse(m=>{if(m.material&&m.material.color)m.material.color.multiplyScalar(.85);});});
-    const can=new THREE.MeshStandardMaterial({color:0x161616,roughness:.45,metalness:.5});
+    const can=new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:.38,metalness:.6});can.userData.fixture=true;
     const ray=new THREE.Raycaster();const solids=[];scene.traverse(o=>{if(o.isMesh&&!o.material.transparent&&!o.userData.art)solids.push(o);});
     // art lighting after the usual rule: track heads on the ceiling, aimed about 30 degrees from vertical, warm white (about 3000K),
     // even edge to edge with little spill; one head for squarish prints, two for wide ones
@@ -270,7 +300,12 @@ function run(cfg){
         f.position.copy(lp);f.lookAt(tgtP);scene.add(f);
         const sl=Math.max(.02,ceil-fy);const stem=new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,sl,6),can);stem.position.set(lp.x,fy+sl/2,lp.z);scene.add(stem);
         const plate=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.012,12),can);plate.position.set(lp.x,ceil-.006,lp.z);scene.add(plate);});});
-  }   // returns {bounds:{x0,x1,z0,z1}, eye, start:{pos,look}, views:[{label,pos,look}]}
+  }
+  // ---- realism: bounce light and soft reflections from the room itself (baked once, so it stays fast) ----
+  const REAL=(()=>{try{const q=new URLSearchParams(location.search).get('real');if(q!=null)return q!=='0';}catch(e){}return cfg.real!==false;})();
+  ROOMS.REAL=REAL;
+  if(REAL&&ROOMS.realism)ROOMS.realism(ctx,room,cfg);
+  // returns {bounds:{x0,x1,z0,z1}, eye, start:{pos,look}, views:[{label,pos,look}]}
   const EYE=room.eye||1.6;
 
   // ---- smooth camera: everything eases toward a target ----
@@ -367,7 +402,7 @@ function run(cfg){
     if(room.tick)room.tick(dt,camera);
     renderer.render(scene,camera);requestAnimationFrame(frame);
   }
-  function start(){started=true;loading.classList.add('done');setTimeout(()=>hint.classList.add('gone'),9000);}
+  function start(){started=true;if(ROOMS.onStart)ROOMS.onStart();loading.classList.add('done');setTimeout(()=>hint.classList.add('gone'),9000);}
   if(pending===0)start();
   setTimeout(()=>{if(!started)start();},8000);
   requestAnimationFrame(frame);

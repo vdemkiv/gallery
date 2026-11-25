@@ -68,16 +68,15 @@ function newYork(ctx,cfg){
     for(let z=1.6;z<9.6;z+=1.6){const c=new THREE.Mesh(new THREE.CylinderGeometry(.04,.05,.15,14),blk);c.position.set(x+(x<0?-.06:.06),4.2,z);c.rotation.z=x<0?.45:-.45;scene.add(c);}});
   scene.add(new THREE.HemisphereLight(0xffffff,0xb7b2aa,.55));
   [[0,4.2,5],[-4,4.2,3],[4,4.2,3]].forEach(p=>{const l=new THREE.PointLight(0xfff4e8,.25,9,2);l.position.set(...p);scene.add(l);});
-  K.sun(ctx,{from:[-14,18,34],to:[0,0,4],intensity:1.25,size:14});
+  K.sun(ctx,{from:[-14,18,34],to:[0,0,4],intensity:.85,size:14,radius:8,color:0xf6f3ee});
   // outside: sidewalk, street, the far side of the block, and midtown in the haze
   const out=K.outside(ctx,{dir:'S',at:[0,0,10]});
   out.ground(K.canvas(512,256,(g,w,h)=>{g.fillStyle='#a19c94';g.fillRect(0,0,w,h);g.strokeStyle='rgba(60,58,54,.5)';for(let x=0;x<w;x+=34){g.beginPath();g.moveTo(x,0);g.lineTo(x,h);g.stroke();}K.noise(g,w,h,14);}),.3,4.2,90,-.005,1.05);
   out.ground(K.canvas(1024,256,(g,w,h)=>{g.fillStyle='#4a4a4a';g.fillRect(0,0,w,h);K.noise(g,w,h,22);g.fillStyle='#d9cf9e';for(let x=0;x<w;x+=60)g.fillRect(x,h*.48,32,4);g.fillStyle='#6b6862';g.fillRect(0,0,w,6);g.fillRect(0,h-6,w,6);}),4.2,14.5,90,-.15,1.0);
   out.ground(K.canvas(512,256,(g,w,h)=>{g.fillStyle='#9e998f';g.fillRect(0,0,w,h);K.noise(g,w,h,14);}),14.5,19,90,-.005,1.0);
-  out.wall(P.nyFacades(),19,100,25,0,0,1.3);
-  out.wall(P.nySkyline(),220,500,90,-2,0,1.02);
-  out.wall(P.sky(2048,1024,{stops:[[0,'#9db7cf'],[.7,'#dbe3e8'],[1,'#eef0ee']],clouds:'thin'}),420,1400,500,-20,0,1.12,false);
-  [-9.5,-1.2,7.8].forEach(x=>out.wall(P.leafy(),3.4,5.5,8.2,0,x,1.15));
+  // across West 22nd Street: real rowhouses (photo: Eden, Janine and Jim, CC BY 2.0)
+  out.photo('img/pano/ny-west-22nd.jpg',19,30,22.5,-.7,{copies:3,bright:1.02});
+  out.wall(P.sky(2048,1024,{stops:[[0,'#c9ced2'],[.7,'#e4e6e6'],[1,'#ebebe8']],clouds:'overcast'}),420,1400,500,-20,0,1.12,false);
   // hang: front room W and E walls, N wall either side of the door; back room N, W, E
   R.hangAll(S,[['A','W'],['A','E'],['A','N'],['B','N'],['B','W'],['B','E']],cfg.works,1.72);
   const bench=new THREE.MeshStandardMaterial({color:0x2f2924,roughness:.55});ctx.bench(0,-5.6,0,bench,2.2);ctx.bench(0,4.8,0,bench,2.0);
