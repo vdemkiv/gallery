@@ -51,15 +51,16 @@ function run(cfg){
   const loading=el('div','rm-loading','<p>Entering the room</p>');root.appendChild(loading);
 
   let renderer;
-  try{renderer=new THREE.WebGLRenderer({antialias:true});}
+  try{renderer=new THREE.WebGLRenderer({antialias:true,logarithmicDepthBuffer:!!cfg.logDepth});}
   catch(e){stage.innerHTML='<div class="rm-nogl">This browser could not open the 3D room. Try a recent Chrome, Safari or Firefox.</div>';loading.classList.add('done');return;}
   renderer.setPixelRatio(Math.min(devicePixelRatio,2));
   renderer.outputEncoding=THREE.sRGBEncoding;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure=cfg.exposure||.8;
+  if(cfg.shadows){renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;}
   stage.appendChild(renderer.domElement);
   const scene=new THREE.Scene();scene.background=new THREE.Color(cfg.bg||'#2a221b');
-  const camera=new THREE.PerspectiveCamera(55,1,.05,120);camera.rotation.order='YXZ';
+  const camera=new THREE.PerspectiveCamera(55,1,.05,cfg.far||400);camera.rotation.order='YXZ';
   const ANISO=renderer.capabilities.getMaxAnisotropy();
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -100,7 +101,7 @@ function run(cfg){
     loader.load(o.file,t=>{t.encoding=THREE.sRGBEncoding;t.anisotropy=ANISO;img.material.map=t;img.material.needsUpdate=true;
       if(!o.asIs){const a=t.image.width/t.image.height;let w=o.w*IN,h=w/a;if(h>o.h*IN){h=o.h*IN;w=h*a;}img.scale.set(w/(o.w*IN),h/(o.h*IN),1);}done();},undefined,done);
     g.position.copy(o.pos);g.lookAt(o.pos.clone().add(o.normal));
-    g.traverse(c=>{c.userData.art=g;});
+    g.traverse(c=>{c.userData.art=g;if(c.isMesh&&!c.material.transparent){c.castShadow=true;}});
     scene.add(g);
     works.push({g,title:o.title,meta:o.meta||cfg.meta||'',normal:o.normal.clone(),center:o.pos.clone(),size:Math.max(FW,FH*1.25)});
     return g;
@@ -123,7 +124,9 @@ function run(cfg){
   {const a=yawPitchTo(cur.pos,room.start.look);cur.yaw=tgt.yaw=a.yaw;cur.pitch=tgt.pitch=a.pitch;}
   let focused=-1, posRate=2.6, lookRate=3.2;
   const B=room.bounds;
-  function clamp(p){p.x=Math.max(B.x0,Math.min(B.x1,p.x));p.z=Math.max(B.z0,Math.min(B.z1,p.z));p.y=EYE;return p;}
+  const AREAS=room.areas||[B];
+  function clamp(p){let best=null,bd=1e9;for(const a of AREAS){const x=Math.max(a.x0,Math.min(a.x1,p.x)),z=Math.max(a.z0,Math.min(a.z1,p.z)),d=(x-p.x)**2+(z-p.z)**2;if(d<bd){bd=d;best=[x,z];}if(d===0)break;}
+    p.x=best[0];p.z=best[1];p.y=EYE;return p;}
   function setYaw(y){let d=y-tgt.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));tgt.yaw+=d;}
   function goPose(pos,look,slow){tgt.pos.copy(clamp(pos.clone()));const a=yawPitchTo(new THREE.Vector3(tgt.pos.x,EYE,tgt.pos.z),look);setYaw(a.yaw);tgt.pitch=a.pitch;posRate=slow?1.6:2.2;lookRate=slow?2.0:2.6;}
   function viewWork(i){
@@ -140,6 +143,8 @@ function run(cfg){
   if(works.length<2){prevB.hidden=true;nextB.hidden=true;}
   (room.views||[]).forEach(v=>{const b=el('button',null,v.label);b.type='button';b.onclick=()=>{unfocus();const p=typeof v.pos==='function'?v.pos(camera):v.pos;goPose(p,v.look,true);};views.appendChild(b);});
 
+  ROOMS.jump=(p,l)=>{tgt.pos.set(p[0],EYE,p[2]);cur.pos.copy(tgt.pos);const a=yawPitchTo(cur.pos,new THREE.Vector3(...l));cur.yaw=tgt.yaw=a.yaw;cur.pitch=tgt.pitch=a.pitch;unfocus();hint.classList.add('gone');};
+  ROOMS.camera=camera;
   function forward(){return new THREE.Vector3(-Math.sin(tgt.yaw),0,-Math.cos(tgt.yaw));}
   function nudge(f,s){const fw=forward(),sd=new THREE.Vector3(-fw.z,0,fw.x);tgt.pos.addScaledVector(fw,f).addScaledVector(sd,s);clamp(tgt.pos);posRate=3.2;}
 
