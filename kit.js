@@ -41,6 +41,7 @@ K.space=function(ctx,spec){
       W:{o:[c.x0,0,0],u:[0,0,1],n:[1,0,0],a0:c.z0,a1:c.z1},E:{o:[c.x1,0,0],u:[0,0,1],n:[-1,0,0],a0:c.z0,a1:c.z1}}[side];
     return map;}
   function place(m,f,at,y,depth,ry){const p=new THREE.Vector3(f.o[0]+f.u[0]*at+f.n[0]*depth,y,f.o[2]+f.u[2]*at+f.n[2]*depth);m.position.copy(p);m.lookAt(p.clone().add(new THREE.Vector3(...f.n)));if(ry)m.rotateY(ry);return m;}
+  var thresholdMat=null;
   function buildWall(c,side,wall){
     if(wall.none)return;const f=frame(c,side),H=c.h,mat=wall.mat||c.wall,t=wall.t||.3;mat.side=THREE.DoubleSide;if(wall.revealMat)wall.revealMat.side=THREE.DoubleSide;
     const ops=(wall.open||[]).slice().sort((a,b)=>a.at-b.at);let a=f.a0;
@@ -51,6 +52,8 @@ K.space=function(ctx,spec){
       const rv=(w,h,at,y,d,ry,rx)=>{const m=uvPlane(w,h,wall.revealMat||mat,0,0);place(m,f,at,y,-d/2,0);if(ry)m.rotateY(ry);if(rx)m.rotateX(rx);m.receiveShadow=true;m.castShadow=true;scene.add(m);};
       rv(t,o.y1-o.y0,s0,(o.y0+o.y1)/2,t,-Math.PI/2);rv(t,o.y1-o.y0,s1,(o.y0+o.y1)/2,t,Math.PI/2);
       rv(o.w,t,o.at,o.y1,t,0,Math.PI/2);if(o.y0>0)rv(o.w,t,o.at,o.y0,t,0,-Math.PI/2);
+      // threshold: a flat stone plate filling this cell's half of the wall thickness, so no gap or overlap shows underfoot
+      if(o.y0<=0){const th=new THREE.Mesh(new THREE.PlaneGeometry(o.w,t/2),thresholdMat||(thresholdMat=new THREE.MeshStandardMaterial({color:0xb9b2a6,roughness:.75})));place(th,f,o.at,.001,-t/4);th.rotateX(-Math.PI/2);th.receiveShadow=true;scene.add(th);}
       if(o.kind==='window'||o.kind==='glass')glazing(f,o,t,wall);
     });
     seg(a,f.a1,0,H);
@@ -108,16 +111,16 @@ K.outside=function(ctx,o){const THREE=T();const g=new THREE.Group();
 
 /* a real photographic panorama around the building: a ring band from -25 to +35 degrees, with sky and ground caps.
    face: world direction (N,E,S,W) that the point u of the strip should face. */
-K.pano=function(ctx,o){const THREE=T();const R=o.R||3000,a0=-25,a1=35,seg=128,rings=13;const dirAng={N:0,E:Math.PI/2,S:Math.PI,W:-Math.PI/2}[o.face||'W'];
+K.pano=function(ctx,o){const THREE=T();const R=o.R||3000,a0=o.a0!=null?o.a0:-25,a1=o.a1!=null?o.a1:35,seg=128,rings=13,arc=o.arc?o.arc*Math.PI/180:2*Math.PI;const dirAng={N:0,E:Math.PI/2,S:Math.PI,W:-Math.PI/2}[o.face||'W'];
   const pos=[],uv=[],idx=[];for(let j=0;j<rings;j++){const a=(a0+(a1-a0)*j/(rings-1))*Math.PI/180;const y=R*Math.tan(a);const v=j/(rings-1);
-    for(let i=0;i<=seg;i++){const u=i/seg;const th=2*Math.PI*(u-(o.u||.5))+dirAng;pos.push(R*Math.sin(th),y,-R*Math.cos(th));uv.push(u,v);}}
+    for(let i=0;i<=seg;i++){const u=i/seg;const th=arc*(u-(o.u||.5))+dirAng;pos.push(R*Math.sin(th),y,-R*Math.cos(th));uv.push(u,v);}}
   for(let j=0;j<rings-1;j++)for(let i=0;i<seg;i++){const p=j*(seg+1)+i,q=p+seg+1;idx.push(p,p+1,q,p+1,q+1,q);}
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geo.setIndex(idx);
   const tx=new THREE.TextureLoader().load(o.src);tx.encoding=THREE.sRGBEncoding;tx.anisotropy=8;tx.wrapS=THREE.RepeatWrapping;
   const b=o.bright||1;const mat=new THREE.MeshBasicMaterial({map:tx,side:THREE.DoubleSide,fog:false,toneMapped:false,color:new THREE.Color(b,b,b),depthWrite:false});
   const g=new THREE.Group();const band=new THREE.Mesh(geo,mat);band.renderOrder=-10;g.add(band);
-  const capM=(c)=>new THREE.MeshBasicMaterial({color:new THREE.Color(c).multiplyScalar(b),side:THREE.DoubleSide,fog:false,toneMapped:false,depthWrite:false});
-  const top=new THREE.Mesh(new THREE.SphereGeometry(R*1.6,48,16,0,Math.PI*2,0,Math.PI/2*0.62),capM(o.sky||'#7fa3cf'));top.renderOrder=-11;g.add(top);
+  const capM=(c)=>new THREE.MeshBasicMaterial({color:(o.arc?new THREE.Color(c).convertSRGBToLinear():new THREE.Color(c)).multiplyScalar(b),side:THREE.DoubleSide,fog:false,toneMapped:false,depthWrite:false});
+  const top=new THREE.Mesh(new THREE.SphereGeometry(R*1.6,48,16,0,Math.PI*2,0,o.arc?(90-a1+1)*Math.PI/180:Math.PI/2*0.62),capM(o.sky||'#7fa3cf'));top.renderOrder=-11;g.add(top);
   const yb=R*Math.tan(a0*Math.PI/180);const bot=new THREE.Mesh(new THREE.CircleGeometry(R*1.2,64),capM(o.ground||'#777'));bot.rotation.x=-Math.PI/2;bot.position.y=yb;bot.renderOrder=-11;g.add(bot);
   const c=o.center||[0,0];g.position.set(c[0],o.y||0,c[1]);ctx.scene.add(g);return g;};
 /* ---------- painted scenery ---------- */
