@@ -180,7 +180,8 @@ C.paris=function(ctx,cfg){const THREE=ctx.THREE,scene=ctx.scene;
       const rose=new THREE.Mesh(new THREE.TorusGeometry(.6,.04,8,40),trim);rose.rotation.x=Math.PI/2;rose.position.set(cx,h-.03,0);scene.add(rose);
       const rect=(w,d)=>{[[w,0,-d/2],[w,0,d/2]].forEach(([L,x,z])=>box(L,.04,.06,cx+x,h-.03,z));[[d,-w/2],[d,w/2]].forEach(([L,x])=>box(L,.04,.06,cx+x,h-.03,0,Math.PI/2));};rect(W-1.4,c.z1-c.z0-1.4);
       // tall panels on the north wall around the works
-      [-3.2,0,3.2].forEach(dx=>{const pw=2.4,ph=2.6,py=2.35,px=cx+dx;[[pw,px,py+ph/2],[pw,px,py-ph/2]].forEach(([L,x,y])=>box(L,.025,.02,x,y,c.z0+.015));[[ph,px-pw/2],[ph,px+pw/2]].forEach(([L,x])=>box(.025,L,.02,x,py,c.z0+.015));});
+      // a room can ask for other panels (or none) through cfg.panels, e.g. where a long row of small prints hangs
+      ((cfg.panels&&cfg.panels[c.id])||[-3.2,0,3.2]).forEach(dx=>{const pw=2.4,ph=2.6,py=2.35,px=cx+dx;[[pw,px,py+ph/2],[pw,px,py-ph/2]].forEach(([L,x,y])=>box(L,.025,.02,x,y,c.z0+.015));[[ph,px-pw/2],[ph,px+pw/2]].forEach(([L,x])=>box(.025,L,.02,x,py,c.z0+.015));});
     }}))});
   scene.add(new THREE.HemisphereLight(0xfbf7f0,0x8e7a62,.55));
   lights(ctx,[[-10,3.6,0],[0,3.6,0],[10,3.6,0],[-10,3.6,-2.5],[0,3.6,-2.5],[10,3.6,-2.5]],0xffefd9,.22,9);
@@ -191,11 +192,13 @@ C.paris=function(ctx,cfg){const THREE=ctx.THREE,scene=ctx.scene;
   out.photo('img/pano/paris-wagram.jpg',16,34,25.5,gy-.6,{copies:3,bright:1.0});
   out.wall(P.sky(2048,1024,{stops:[[0,'#dfe2e4'],[.75,'#eeeeec'],[1,'#f2f1ee']],clouds:'overcast'}),500,1600,600,-60,0,1.1,false);
   const ws=cfg.works.map(w=>w.asIs?w:sized(w,60));
-  hangAll(S,[['A','N',[-13.3,-10.1,-6.9]],['B','N',[-3.2,0,3.2]],['C','N',[6.9,10.1,13.3]],['A','W',[-2.2,2.2]],['C','E',[2.2,-2.2]]],ws,1.95);
+  // cfg.hang places the works one by one: [[cell,side,[at,...],y],...] in the order of cfg.works (each work keeps its own size)
+  if(cfg.hang){let n=0;cfg.hang.forEach(([c,sd,ats,y])=>ats.forEach(at=>{const w=cfg.works[n++];if(w)S.hang(c,sd,at,y||1.95,w);}));}
+  else hangAll(S,[['A','N',[-13.3,-10.1,-6.9]],['B','N',[-3.2,0,3.2]],['C','N',[6.9,10.1,13.3]],['A','W',[-2.2,2.2]],['C','E',[2.2,-2.2]]],ws,1.95);
   benchAt(ctx,[[-10.1,-.6],[0,-.6],[10.1,-.6]],0x3f2e20);
   return {areas:S.areas(.6).concat([{x0:-5.6,x1:-4.4,z0:-.6,z1:.6},{x0:4.4,x1:5.6,z0:-.6,z1:.6}]),eye:1.6,
-    start:{pos:V(-13.6,1.6,2.6),look:V(10,1.7,-1.5)},
-    views:[{label:'Enfilade',pos:V(-13.6,1.6,0),look:V(15,1.7,0)},{label:'Middle salon',pos:V(0,1.6,3.2),look:V(0,1.85,-4.2)},{label:'Windows',pos:V(1,1.6,-2.6),look:V(-1,2.2,12)}]};
+    start:cfg.start?{pos:V(...cfg.start.pos),look:V(...cfg.start.look)}:{pos:V(-13.6,1.6,2.6),look:V(10,1.7,-1.5)},
+    views:cfg.views?cfg.views.map(v=>({label:v.label,pos:V(...v.pos),look:V(...v.look)})):[{label:'Enfilade',pos:V(-13.6,1.6,0),look:V(15,1.7,0)},{label:'Middle salon',pos:V(0,1.6,3.2),look:V(0,1.85,-4.2)},{label:'Windows',pos:V(1,1.6,-2.6),look:V(-1,2.2,12)}]};
 };
 
 /* ---------- London: a large warehouse hall with timber trusses and steel windows, plus a smaller side room ---------- */

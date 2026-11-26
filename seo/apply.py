@@ -173,6 +173,8 @@ def room_page(fname, text, cfg, info, all_rooms):
         }
         if digital:
             a["artMedium"] = "Digital"
+        elif info.get("single") and w["f"] != info["image"]:
+            a["artMedium"] = "Gelatin silver print, 8 x 10 in, one of the 25 prints of the single work"
         elif info.get("single"):
             a["artMedium"] = "25 gelatin silver prints, 8 x 10 in each, in one frame"
         else:
@@ -226,7 +228,7 @@ def room_page(fname, text, cfg, info, all_rooms):
         items.append(
             '<li><figure><img src="%s" alt="%s" loading="lazy" decoding="async" crossorigin="anonymous">'
             "<figcaption>%s</figcaption></figure></li>"
-            % (esc(w["f"]), esc(alt_for(w["t"], series, info["subject"], digital)), cap)
+            % (esc(w["f"]), esc(alt_for(w["t"], series, w.get("subject") or info["subject"], digital)), cap)
         )
     others = "".join(
         '<li><a href="%s">%s</a></li>' % (esc(f), esc(t)) for f, t in all_rooms if f != fname
